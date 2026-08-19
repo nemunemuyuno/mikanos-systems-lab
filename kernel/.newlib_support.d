@@ -1,20 +1,18 @@
 newlib_support.o: newlib_support.c \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/errno.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__config \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/types.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/_ansi.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/newlib.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/_newlib_version.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/sys/config.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/machine/ieeefp.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/sys/features.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/cdefs.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/machine/_default_types.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/sys/features.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stddef.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__config \
   /home/ramur/osbook/devenv/x86_64-elf/include/machine/_types.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/_types.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/_stdint.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/machine/endian.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/machine/_endian.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/sys/config.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/select.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/_sigset.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/_timeval.h \
