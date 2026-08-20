@@ -12,18 +12,20 @@
 #include "console.hpp"
 #include "pci.hpp"
 #include "logger.hpp"
+#include "interrupt.hpp"
 #include "usb/memory.hpp"
 #include "usb/device.hpp"
 #include "usb/classdriver/mouse.hpp"
 #include "usb/xhci/xhci.hpp"
 #include "usb/xhci/trb.hpp"
+#include "asmfunc.h"
+#include "queue.hpp"
+
 
 
 
 
 // #@@range_begin(placement_new)
-
-
 void operator delete(void* obj) noexcept {
 }
 // #@@range_end(placement_new)
@@ -87,7 +89,25 @@ void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
 }
 // #@@range_end(switch_echi2xhci)
 
+// #@@range_begin(xhci_handler)
+usb::xhci::Controller* xhc;
 
+struct Message {
+    enum Type {
+        kInterruptXHCI,
+    } type;
+};
+
+ArrayQueue<Message>* main_queue;
+// #@@range_end(queue_message)
+
+// #@@range_begin(xhci_handler)
+__attribute__((interrupt))
+    void IntHandlerXHCI(InterruptFrame* frame) {
+    main_queue->Push(Message{Message::kInterruptXHCI});
+    NotifyEndOfInterrupt();
+}
+// #@@range_end(xhci_handler)
 
 
 
@@ -143,6 +163,10 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
     };
     // #@@range_end(new_mouse_cursor)
 
+    std::array<Message, 32> main_queue_data;
+    ArrayQueue<Message> main_queue{main_queue_data};
+    ::main_queue = &main_queue;
+
 
     auto err = pci::ScanAllBus();
     printk("ScanAllBus: %s\n", err.Name());
@@ -173,6 +197,28 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
     }
     // #@@range_end(find_xhc)
 
+
+    //CPUにIDTの場所を教えてる
+    // #@@range_begin(load_idt)
+    const uint16_t cs = GetCS();
+    SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
+    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
+    // #@@range_end(load_idt)
+
+
+
+    // #@@range_begin(configure_msi)
+    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t*>(0xfee00020) >> 24;
+    pci::ConfigureMSIFixedDestination(
+        *xhc_dev, bsp_local_apic_id,
+        pci::MSITriggerMode::kLevel, pci::MSIDeliveryMode::kFixed,
+        InterruptVector::kXHCI, 0);
+    // #@@range_end(configure_msi)
+
+
+
+
     // #@@range_begin(read_bar)
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
     Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
@@ -195,6 +241,10 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
     xhc.Run();
     // #@@range_end(init_xhc)
 
+    ::xhc = &xhc;
+    __asm__("sti");
+
+
     // #@@range_begin(configure_port)
     usb::HIDMouseDriver::default_observer = MouseObserver;
 
@@ -203,26 +253,44 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
         Log(kDebug, "Port %d: IsConnected=%d\n", i, port.IsConnected());
 
         if (port.IsConnected()) {
-        if (auto err = ConfigurePort(xhc, port)) {
-            Log(kError, "failed to configure port: %s at %s:%d\n", err.Name(), err.File(), err.Line());
-            continue;
-        }
+            if (auto err = ConfigurePort(xhc, port)) {
+                Log(kError, "failed to configure port: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+                continue;
+            }
         }
     }
     // #@@range_end(configure_port)
 
-    // #@@range_begin(receive_event)
-    while (1) {
-        if (auto err = ProcessEvent(xhc)) {
-        Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+  // #@@range_begin(event_loop)
+    while (true) {
+        // #@@range_begin(get_front_message)
+        __asm__("cli");
+        if (main_queue.Count() == 0) {
+        __asm__("sti\n\thlt");
+        continue;
+        }
+
+        Message msg = main_queue.Front();
+        main_queue.Pop();
+        __asm__("sti");
+        // #@@range_end(get_front_message)
+
+        switch (msg.type) {
+        case Message::kInterruptXHCI:
+        while (xhc.PrimaryEventRing()->HasFront()) {
+            if (auto err = ProcessEvent(xhc)) {
+            Log(kError, "Error while ProcessEvent: %s at %s:%d\n",
+                err.Name(), err.File(), err.Line());
+            }
+        }
+        break;
+        default:
+        Log(kError, "Unknown message type: %d\n", msg.type);
         }
     }
-    // #@@range_end(receive_event)
+  // #@@range_end(event_loop)
 
 
-
-    while(1)
-        __asm__("hlt");
 }
 
 

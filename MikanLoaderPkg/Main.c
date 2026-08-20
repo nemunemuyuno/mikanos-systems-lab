@@ -11,6 +11,7 @@
 #include  <Guid/FileInfo.h>
 #include  "frame_buffer_config.hpp"
 #include  "elf.hpp"
+#include  "memory_map.hpp"
 
 
 struct MemoryMap{
@@ -412,9 +413,12 @@ EFI_STATUS EFIAPI UefiMain(
             Halt();
     }
 
-    typedef void EntryPointType(const struct FrameBufferConfig*);
+    // #@@range_begin(pass_memory_map)
+    typedef void EntryPointType(const struct FrameBufferConfig*,
+                                const struct MemoryMap*);
     EntryPointType* entry_point = (EntryPointType*)entry_addr;
-    entry_point(&config);
+    entry_point(&config, &memmap);
+  // #@@range_end(pass_memory_map)
     // #@@range_end(call_kernel)
     
     // #@@range_end(main)
