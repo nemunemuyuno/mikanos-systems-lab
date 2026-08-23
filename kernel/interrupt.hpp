@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include "x86_descriptor.hpp"
+#include "window.hpp"
 
 // #@@range_begin(descriptor_attr_struct)
 union InterruptDescriptorAttribute {

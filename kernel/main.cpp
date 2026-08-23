@@ -24,16 +24,10 @@
 #include "segment.hpp"
 #include "paging.hpp"
 #include "memory_manager.hpp"
+#include "window.hpp"
+#include "layer.hpp"
+#include "timer.hpp"
 
-
-
-// #@@range_begin(placement_new)
-void operator delete(void* obj) noexcept {
-}
-// #@@range_end(placement_new)
-
-const PixelColor kDesktopBGColor{45, 118, 237};
-const PixelColor kDesktopFGColor{255, 255, 255};
 
 
 
@@ -46,7 +40,7 @@ char console_buf[sizeof(Console)];
 Console* console;
 // #@@range_end(console_buf)
 
-// #@@range_begin(printk)
+// #@@range_begin(measure_printk)
 int printk(const char* format, ...) {
     va_list ap;
     int result;
@@ -55,10 +49,17 @@ int printk(const char* format, ...) {
     va_start(ap, format);
     result = vsprintf(s, format, ap);
     va_end(ap);
+
+    StartLAPICTimer();
+    console->PutString(s);
+    auto elapsed = LAPICTimerElapsed();
+    StopLAPICTimer();
+
+    sprintf(s, "[%9d]", elapsed);
     console->PutString(s);
     return result;
 }
-// #@@range_end(printk)
+// #@@range_end(measure_printk)
 
 
 // #@@range_begin(memman_buf)
@@ -68,14 +69,20 @@ BitmapMemoryManager* memory_manager;
 
 
 
-// #@@range_begin(mouse_observer)
-char mouse_cursor_buf[sizeof(MouseCursor)];
-MouseCursor* mouse_cursor;
+// #@@range_begin(layermgr_mousehandler)
+unsigned int mouse_layer_id;
+Vector2D<int> screen_size;
+Vector2D<int> mouse_position;
 
 void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
-    mouse_cursor->MoveRelative({displacement_x, displacement_y});
+    auto newpos = mouse_position + Vector2D<int>{displacement_x, displacement_y};
+    newpos = ElementMin(newpos, screen_size + Vector2D<int>{-1, -1});
+    mouse_position = ElementMax(newpos, {0, 0});
+
+    layer_manager->Move(mouse_layer_id, mouse_position);
+    layer_manager->Draw();
 }
-// #@@range_end(mouse_observer)
+// #@@range_end(layermgr_mousehandler)
 
 
 // #@@range_begin(switch_echi2xhci)
@@ -152,39 +159,18 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
         break;
     }
 
-    for (int x = 0; x < frame_buffer_config.horizontal_resolution; ++x){
-        for(int y = 0; y < frame_buffer_config.vertical_resolution; ++y){
-            pixel_writer->Write(x, y, {255, 255, 255});
-        }
-    }
 
-    const int kFrameWidth = frame_buffer_config.horizontal_resolution;
-    const int kFrameHeight = frame_buffer_config.vertical_resolution;
-
-    // #@@range_begin(draw_desktop)
-    FillRectangle(*pixel_writer,
-                    {0, 0},
-                    {kFrameWidth, kFrameHeight - 50},
-                    kDesktopBGColor);
-    FillRectangle(*pixel_writer,
-                    {0, kFrameHeight - 50},
-                    {kFrameWidth, 50},
-                    {1, 8, 17});
-    FillRectangle(*pixel_writer,
-                    {0, kFrameHeight - 50},
-                    {kFrameWidth / 5, 50},
-                    {80, 80, 80});
-    DrawRectangle(*pixel_writer,
-                    {10, kFrameHeight - 40},
-                    {30, 30},
-                    {160, 160, 160});
+  // #@@range_begin(new_console)
+    DrawDesktop(*pixel_writer);
 
     console = new(console_buf) Console{
-        *pixel_writer, kDesktopFGColor, kDesktopBGColor
+        kDesktopFGColor, kDesktopBGColor
     };
+    console->SetWriter(pixel_writer);
     printk("Welcome to MikanOS!\n");
     SetLogLevel(kWarn);
-    // #@@range_end(draw_desktop)
+    InitializeLAPICTimer();
+  // #@@range_end(new_console)
 
 
     // #@@range_begin(setup_segments_and_page)
@@ -223,51 +209,16 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
                     desc->number_of_pages * kUEFIPageSize / kBytesPerFrame);
         }
     }
+    // #@@range_begin(initialize_heap)
     memory_manager->SetMemoryRange(FrameID{1}, FrameID{available_end / kBytesPerFrame});
-  // #@@range_end(mark_allocated)
 
-
-
-
-
-
-
-
-
-
-    
-
-    const std::array available_memory_types{
-        MemoryType::kEfiBootServicesCode,
-        MemoryType::kEfiBootServicesData,
-        MemoryType::kEfiConventionalMemory,
-    };
-
-    // #@@range_begin(print_memory_map)
-    printk("memory_map: %p\n", &memory_map);
-    for (uintptr_t iter = reinterpret_cast<uintptr_t>(memory_map.buffer);
-        iter < reinterpret_cast<uintptr_t>(memory_map.buffer) + memory_map.map_size;
-        iter += memory_map.descriptor_size) {
-        auto desc = reinterpret_cast<MemoryDescriptor*>(iter);
-        for (int i = 0; i < available_memory_types.size(); ++i) {
-            if (desc->type == available_memory_types[i]) {
-                printk("type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n",
-                    desc->type,
-                    desc->physical_start,
-                    desc->physical_start + desc->number_of_pages * 4096 - 1,
-                    desc->number_of_pages,
-                    desc->attribute);
-            }
-        }
+    if (auto err = InitializeHeap(*memory_manager)) {
+        Log(kError, "failed to allocate pages: %s at %s:%d\n",
+            err.Name(), err.File(), err.Line());
+        exit(1);
     }
-    // #@@range_end(print_memory_map)
+    // #@@range_end(initialize_heap)
 
-    
-    // #@@range_begin(new_mouse_cursor)
-    mouse_cursor = new(mouse_cursor_buf) MouseCursor{
-        pixel_writer, kDesktopBGColor, {300, 200}
-    };
-    // #@@range_end(new_mouse_cursor)
 
     std::array<Message, 32> main_queue_data;
     ArrayQueue<Message> main_queue{main_queue_data};
@@ -367,14 +318,86 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
     }
     // #@@range_end(configure_port)
 
+
+    // #@@range_begin(screen_size)
+    screen_size.x = frame_buffer_config.horizontal_resolution;
+    screen_size.y = frame_buffer_config.vertical_resolution;
+    // #@@range_end(screen_size)
+
+    auto bgwindow = std::make_shared<Window>(
+        screen_size.x, screen_size.y, frame_buffer_config.pixel_format);
+    auto bgwriter = bgwindow->Writer();
+    // #@@range_begin(set_window)
+    DrawDesktop(*bgwriter);
+    console->SetWindow(bgwindow);
+    // #@@range_end(set_window)
+
+
+    auto mouse_window = std::make_shared<Window>(
+        kMouseCursorWidth, kMouseCursorHeight, frame_buffer_config.pixel_format);
+    mouse_window->SetTransparentColor(kMouseTransparentColor);
+    DrawMouseCursor(mouse_window->Writer(), {0, 0});
+    mouse_position = {200, 200};
+
+    // #@@range_begin(make_window)
+    auto main_window = std::make_shared<Window>(
+        160, 52, frame_buffer_config.pixel_format);
+    DrawWindow(*main_window->Writer(), "Hello Window");
+    // #@@range_end(make_window)
+
+
+
+  // #@@range_begin(create_screen)
+    FrameBuffer screen;
+    if (auto err = screen.Initialize(frame_buffer_config)) {
+        Log(kError, "failed to initialize frame buffer: %s at %s:%d\n",
+            err.Name(), err.File(), err.Line());
+    }
+
+    layer_manager = new LayerManager;
+    layer_manager->SetWriter(&screen);
+    // #@@range_end(create_screen)
+
+
+    auto bglayer_id = layer_manager->NewLayer()
+        .SetWindow(bgwindow)
+        .Move({0, 0})
+        .ID();
+    mouse_layer_id = layer_manager->NewLayer()
+        .SetWindow(mouse_window)
+        .Move(mouse_position)
+        .ID();
+    // #@@range_begin(register_window)
+    auto main_window_layer_id = layer_manager->NewLayer()
+        .SetWindow(main_window)
+        .Move({300, 100})
+        .ID();
+
+    layer_manager->UpDown(bglayer_id, 0);
+    layer_manager->UpDown(mouse_layer_id, 1);
+    layer_manager->UpDown(main_window_layer_id, 1);
+    layer_manager->Draw();
+
+    // #@@range_begin(make_counter)
+    char str[128];
+    unsigned int count = 0;
+    // #@@range_end(make_counter)
+
   // #@@range_begin(event_loop)
     while (true) {
-        // #@@range_begin(get_front_message)
+        // #@@range_begin(show_count)
+        ++count;
+        sprintf(str, "%010u", count);
+        FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
+        WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
+        layer_manager->Draw();
+
         __asm__("cli");
         if (main_queue.Count() == 0) {
-        __asm__("sti\n\thlt");
+        __asm__("sti");
         continue;
         }
+        // #@@range_end(show_count)
 
         Message msg = main_queue.Front();
         main_queue.Pop();

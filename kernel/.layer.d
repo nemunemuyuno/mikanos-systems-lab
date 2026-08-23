@@ -1,23 +1,22 @@
-console.o: console.cpp console.hpp graphics.hpp frame_buffer_config.hpp \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdint.h \
+layer.o: layer.cpp layer.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/memory \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__config \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/algorithm \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/initializer_list \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/type_traits \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstddef \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/version \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/type_traits \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstring \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/utility \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tuple \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdint \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__debug \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/memory \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/typeinfo \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/exception \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdlib \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdlib.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdint \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdint.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/new \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/utility \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tuple \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/initializer_list \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstring \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__debug \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/iterator \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/iosfwd \
@@ -28,18 +27,19 @@ console.o: console.cpp console.hpp graphics.hpp frame_buffer_config.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cassert \
   /home/ramur/osbook/devenv/x86_64-elf/include/assert.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/_ansi.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/map \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tree \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/algorithm \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/functional \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit window.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__node_handle \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/vector \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__bit_reference \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/climits \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__split_buffer \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional \
-  frame_buffer.hpp error.hpp \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
+  graphics.hpp frame_buffer_config.hpp window.hpp frame_buffer.hpp \
+  error.hpp /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array font.hpp \
-  layer.hpp /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/map \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tree \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__node_handle
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array

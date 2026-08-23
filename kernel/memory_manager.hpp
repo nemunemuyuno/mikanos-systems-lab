@@ -88,3 +88,6 @@ class BitmapMemoryManager {
   void SetBit(FrameID frame, bool allocated);
 };
 // #@@range_end(bitmap_memory_manager)
+
+
+Error InitializeHeap(BitmapMemoryManager& memory_manager);
