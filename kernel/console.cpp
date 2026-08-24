@@ -21,7 +21,7 @@ void Console::PutString(const char* s) {
         ++s;
     }
     if (layer_manager) {
-        layer_manager->Draw();
+        layer_manager->Draw(layer_id_);
     }
 }
 // #@@range_end(putstring)
@@ -32,6 +32,7 @@ void Console::SetWriter(PixelWriter* writer) {
         return;
     }
     writer_ = writer;
+    window_.reset();
     Refresh();
 }
 // #@@range_end(console_setwriter)
@@ -47,6 +48,18 @@ void Console::SetWindow(const std::shared_ptr<Window>& window) {
     Refresh();
 }
 // #@@range_end(set_window)
+
+
+// #@@range_begin(set_layer_id)
+void Console::SetLayerID(unsigned int layer_id) {
+    layer_id_ = layer_id;
+}
+
+unsigned int Console::LayerID() const {
+    return layer_id_;
+}
+// #@@range_end(set_layer_id)
+
 
 // #@@range_begin(newline)
 void Console::Newline() {
@@ -72,10 +85,13 @@ void Console::Newline() {
 // #@@range_end(newline)
 
 
-// #@@range_begin(console_refresh)
+
+
 void Console::Refresh() {
+    FillRectangle(*writer_, {0, 0}, {8 * kColumns, 16 * kRows}, bg_color_);
     for (int row = 0; row < kRows; ++row) {
         WriteString(*writer_, Vector2D<int>{0, 16 * row}, buffer_[row], fg_color_);
     }
 }
-// #@@range_end(console_refresh)
+
+

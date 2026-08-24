@@ -48,7 +48,7 @@ class Window {
    * @param dst  描画先
    * @param position  writer の左上を基準とした描画位置
    */
-  void DrawTo(FrameBuffer& dst, Vector2D<int> position);
+  void DrawTo(FrameBuffer& dst, Vector2D<int> pos, const Rectangle<int>& area);
   /** @brief 透過色を設定する。 */
   void SetTransparentColor(std::optional<PixelColor> c);
   /** @brief このインスタンスに紐付いた WindowWriter を取得する。 */
@@ -63,6 +63,11 @@ class Window {
   int Width() const;
   /** @brief 平面描画領域の高さをピクセル単位で返す。 */
   int Height() const;
+  /** @brief 平面描画領域のサイズをピクセル単位で返す。 */
+  Vector2D<int> Size() const;
+
+
+
   void Move(Vector2D<int> dst_pos, const Rectangle<int>& src);
 
   // #@@range_begin(fields)
