@@ -32,4 +32,5 @@ memory_manager.o: memory_manager.cpp memory_manager.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/functional \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit error.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
+  memory_map.hpp logger.hpp

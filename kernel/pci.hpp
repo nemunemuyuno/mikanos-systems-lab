@@ -1,3 +1,9 @@
+/**
+ * @file pci.hpp
+ *
+ * PCI バス制御のプログラムを集めたファイル．
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -11,7 +17,6 @@ namespace pci {
   /** @brief CONFIG_DATA レジスタの IO ポートアドレス */
   const uint16_t kConfigData = 0x0cfc;
 
-  // #@@range_begin(class_code)
   /** @brief PCI デバイスのクラスコード */
   struct ClassCode {
     uint8_t base, sub, interface;
@@ -35,7 +40,6 @@ namespace pci {
     uint8_t bus, device, function, header_type;
     ClassCode class_code;
   };
-  // #@@range_end(class_code)
 
   /** @brief CONFIG_ADDRESS に指定された整数を書き込む */
   void WriteAddress(uint32_t address);
@@ -59,7 +63,7 @@ namespace pci {
 
   /** @brief 指定された PCI デバイスの 32 ビットレジスタを読み取る */
   uint32_t ReadConfReg(const Device& dev, uint8_t reg_addr);
-
+  /** @brief 指定された PCI デバイスの 32 ビットレジスタに書き込む */
   void WriteConfReg(const Device& dev, uint8_t reg_addr, uint32_t value);
 
   /** @brief バス番号レジスタを読み取る（ヘッダタイプ 1 用）
@@ -146,7 +150,7 @@ namespace pci {
    * @param num_vector_exponent  割り当てるベクタ数（2^n の n を指定）
    */
   Error ConfigureMSI(const Device& dev, uint32_t msg_addr, uint32_t msg_data,
-                      unsigned int num_vector_exponent);
+                     unsigned int num_vector_exponent);
 
   enum class MSITriggerMode {
     kEdge = 0,
@@ -168,6 +172,4 @@ namespace pci {
       uint8_t vector, unsigned int num_vector_exponent);
 }
 
-
-  
-
+void InitializePCI();

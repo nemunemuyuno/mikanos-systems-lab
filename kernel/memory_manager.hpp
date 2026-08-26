@@ -10,8 +10,8 @@
 #include <limits>
 
 #include "error.hpp"
+#include "memory_map.hpp"
 
-// #@@range_begin(frame_id)
 namespace {
   constexpr unsigned long long operator""_KiB(unsigned long long kib) {
     return kib * 1024;
@@ -29,17 +29,17 @@ namespace {
 /** @brief 物理メモリフレーム 1 つの大きさ（バイト） */
 static const auto kBytesPerFrame{4_KiB};
 
-class FrameID{
-    public:
-        explicit FrameID(size_t id): id_{id}{}
-        size_t ID() const { return id_; }
-        void* Frame() const { return reinterpret_cast<void*>(id_ * kBytesPerFrame); }
-    private:
-        size_t id_;
+class FrameID {
+ public:
+  explicit FrameID(size_t id) : id_{id} {}
+  size_t ID() const { return id_; }
+  void* Frame() const { return reinterpret_cast<void*>(id_ * kBytesPerFrame); }
+
+ private:
+  size_t id_;
 };
 
 static const FrameID kNullFrame{std::numeric_limits<size_t>::max()};
-// #@@range_end(frame_id)
 
 /** @brief ビットマップ配列を用いてフレーム単位でメモリ管理するクラス．
  *
@@ -48,7 +48,6 @@ static const FrameID kNullFrame{std::numeric_limits<size_t>::max()};
  * alloc_map[n] の m ビット目が対応する物理アドレスは次の式で求まる：
  *   kFrameBytes * (n * kBitsPerMapLine + m)
  */
-// #@@range_begin(bitmap_memory_manager)
 class BitmapMemoryManager {
  public:
   /** @brief このメモリ管理クラスで扱える最大の物理メモリ量（バイト） */
@@ -87,7 +86,5 @@ class BitmapMemoryManager {
   bool GetBit(FrameID frame) const;
   void SetBit(FrameID frame, bool allocated);
 };
-// #@@range_end(bitmap_memory_manager)
 
-
-Error InitializeHeap(BitmapMemoryManager& memory_manager);
+void InitializeMemoryManager(const MemoryMap& memory_map);

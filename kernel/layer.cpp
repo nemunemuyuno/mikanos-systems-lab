@@ -1,204 +1,210 @@
 #include "layer.hpp"
-#include <algorithm>
 
-// #@@range_begin(layer_ctor)
+#include <algorithm>
+#include "console.hpp"
+#include "logger.hpp"
+
 Layer::Layer(unsigned int id) : id_{id} {
 }
-// #@@range_end(layer_ctor)
 
-// #@@range_begin(layer_id)
 unsigned int Layer::ID() const {
-    return id_;
+  return id_;
 }
-// #@@range_end(layer_id)
 
-// #@@range_begin(layer_setget_window)
 Layer& Layer::SetWindow(const std::shared_ptr<Window>& window) {
-    window_ = window;
-    return *this;
+  window_ = window;
+  return *this;
 }
 
 std::shared_ptr<Window> Layer::GetWindow() const {
-    return window_;
+  return window_;
 }
-// #@@range_end(layer_setget_window)
 
 Vector2D<int> Layer::GetPosition() const {
-    return pos_;
+  return pos_;
 }
 
-// #@@range_begin(set_draggable)
 Layer& Layer::SetDraggable(bool draggable) {
-    draggable_ = draggable;
-    return *this;
+  draggable_ = draggable;
+  return *this;
 }
 
 bool Layer::IsDraggable() const {
-    return draggable_;
+  return draggable_;
 }
-// #@@range_end(set_draggable)
 
-// #@@range_begin(layer_move)
 Layer& Layer::Move(Vector2D<int> pos) {
-    pos_ = pos;
-    return *this;
+  pos_ = pos;
+  return *this;
 }
 
 Layer& Layer::MoveRelative(Vector2D<int> pos_diff) {
-    pos_ += pos_diff;
-    return *this;
+  pos_ += pos_diff;
+  return *this;
 }
-// #@@range_end(layer_move)
 
-// #@@range_begin(layer_drawto)
 void Layer::DrawTo(FrameBuffer& screen, const Rectangle<int>& area) const {
-    if (window_) {
-        window_->DrawTo(screen, pos_, area);
-    }
+  if (window_) {
+    window_->DrawTo(screen, pos_, area);
+  }
 }
-// #@@range_end(layer_drawto)
 
 
 void LayerManager::SetWriter(FrameBuffer* screen) {
-    screen_ = screen;
-    FrameBufferConfig back_config = screen->Config();
-    back_config.frame_buffer = nullptr;
-    back_buffer_.Initialize(back_config);
+  screen_ = screen;
+
+  FrameBufferConfig back_config = screen->Config();
+  back_config.frame_buffer = nullptr;
+  back_buffer_.Initialize(back_config);
 }
 
 Layer& LayerManager::NewLayer() {
-    ++latest_id_;
-    return *layers_.emplace_back(new Layer{latest_id_});
+  ++latest_id_;
+  return *layers_.emplace_back(new Layer{latest_id_});
 }
 
-// #@@range_begin(layermgr_draw)
 void LayerManager::Draw(const Rectangle<int>& area) const {
-    for (auto layer : layer_stack_) {
-        layer->DrawTo(back_buffer_, area);
-    }
-    screen_->Copy(area.pos, back_buffer_, area);
+  for (auto layer : layer_stack_) {
+    layer->DrawTo(back_buffer_, area);
+  }
+  screen_->Copy(area.pos, back_buffer_, area);
 }
 
 void LayerManager::Draw(unsigned int id) const {
-    bool draw = false;
-    Rectangle<int> window_area;
-    for (auto layer : layer_stack_) {
-        if (layer->ID() == id) {
-            window_area.size = layer->GetWindow()->Size();
-            window_area.pos = layer->GetPosition();
-            draw = true;
-        }
-        if (draw) {
-            layer->DrawTo(back_buffer_, window_area);
-        }
-    screen_->Copy(window_area.pos, back_buffer_, window_area);
+  bool draw = false;
+  Rectangle<int> window_area;
+  for (auto layer : layer_stack_) {
+    if (layer->ID() == id) {
+      window_area.size = layer->GetWindow()->Size();
+      window_area.pos = layer->GetPosition();
+      draw = true;
+    }
+    if (draw) {
+      layer->DrawTo(back_buffer_, window_area);
+    }
   }
+  screen_->Copy(window_area.pos, back_buffer_, window_area);
 }
-// #@@range_end(layermgr_draw)
 
-
-
-// #@@range_begin(layermgr_move)
 void LayerManager::Move(unsigned int id, Vector2D<int> new_pos) {
-    auto layer = FindLayer(id);
-    const auto window_size = layer->GetWindow()->Size();
-    const auto old_pos = layer->GetPosition();
-    layer->Move(new_pos);
-    // TODO: Drawing exactly old mouse area leaves a 1px trail on QEMU.
-    // Temporarily expand redraw area by 1px on each side.
-    Draw({
-    old_pos - Vector2D<int>{1, 1},
-    window_size + Vector2D<int>{2, 2}
-});
-    Draw(id);
+  auto layer = FindLayer(id);
+  const auto window_size = layer->GetWindow()->Size();
+  const auto old_pos = layer->GetPosition();
+  layer->Move(new_pos);
+  Draw({old_pos - Vector2D<int>{1, 1} , window_size + Vector2D<int>{2, 2}});
+  Draw(id);
 }
-// #@@range_end(layermgr_move)
 
 void LayerManager::MoveRelative(unsigned int id, Vector2D<int> pos_diff) {
-    auto layer = FindLayer(id);
-    const auto window_size = layer->GetWindow()->Size();
-    const auto old_pos = layer->GetPosition();
-    layer->MoveRelative(pos_diff);
-    Draw({
-    old_pos - Vector2D<int>{1, 1},
-    window_size + Vector2D<int>{2, 2}});
-    Draw(id);
-    }
+  auto layer = FindLayer(id);
+  const auto window_size = layer->GetWindow()->Size();
+  const auto old_pos = layer->GetPosition();
+  layer->MoveRelative(pos_diff);
+  Draw({old_pos - Vector2D<int>{1, 1} , window_size + Vector2D<int>{2, 2}});
+  Draw(id);
+}
 
-// #@@range_begin(layermgr_updown)
 void LayerManager::UpDown(unsigned int id, int new_height) {
-    if (new_height < 0) {
-        Hide(id);
-        return;
-    }
-    if (new_height > layer_stack_.size()) {
-        new_height = layer_stack_.size();
-    }
+  if (new_height < 0) {
+    Hide(id);
+    return;
+  }
+  if (new_height > layer_stack_.size()) {
+    new_height = layer_stack_.size();
+  }
 
-    auto layer = FindLayer(id);
-    auto old_pos = std::find(layer_stack_.begin(), layer_stack_.end(), layer);
-    auto new_pos = layer_stack_.begin() + new_height;
+  auto layer = FindLayer(id);
+  auto old_pos = std::find(layer_stack_.begin(), layer_stack_.end(), layer);
+  auto new_pos = layer_stack_.begin() + new_height;
 
-    if (old_pos == layer_stack_.end()) {
-        layer_stack_.insert(new_pos, layer);
-        return;
-    }
-
-    if (new_pos == layer_stack_.end()) {
-        --new_pos;
-    }
-    layer_stack_.erase(old_pos);
+  if (old_pos == layer_stack_.end()) {
     layer_stack_.insert(new_pos, layer);
-}
-// #@@range_end(layermgr_updown)
+    return;
+  }
 
-// #@@range_begin(layermgr_hide)
+  if (new_pos == layer_stack_.end()) {
+    --new_pos;
+  }
+  layer_stack_.erase(old_pos);
+  layer_stack_.insert(new_pos, layer);
+}
+
 void LayerManager::Hide(unsigned int id) {
-    auto layer = FindLayer(id);
-    auto pos = std::find(layer_stack_.begin(), layer_stack_.end(), layer);
-    if (pos != layer_stack_.end()) {
-        layer_stack_.erase(pos);
-    }
+  auto layer = FindLayer(id);
+  auto pos = std::find(layer_stack_.begin(), layer_stack_.end(), layer);
+  if (pos != layer_stack_.end()) {
+    layer_stack_.erase(pos);
+  }
 }
-// #@@range_end(layermgr_hide)
 
-
-// #@@range_begin(layermgr_findlayer_bypos)
 Layer* LayerManager::FindLayerByPosition(Vector2D<int> pos, unsigned int exclude_id) const {
-    auto pred = [pos, exclude_id](Layer* layer) {
-        if (layer->ID() == exclude_id) {
-            return false;
-        }
-        const auto& win = layer->GetWindow();
-        if (!win) {
-            return false;
-        }
-        const auto win_pos = layer->GetPosition();
-        const auto win_end_pos = win_pos + win->Size();
-        return win_pos.x <= pos.x && pos.x < win_end_pos.x &&
-            win_pos.y <= pos.y && pos.y < win_end_pos.y;
-    };
-    auto it = std::find_if(layer_stack_.rbegin(), layer_stack_.rend(), pred);
-    if (it == layer_stack_.rend()) {
-        return nullptr;
+  auto pred = [pos, exclude_id](Layer* layer) {
+    if (layer->ID() == exclude_id) {
+      return false;
     }
-    return *it;
+    const auto& win = layer->GetWindow();
+    if (!win) {
+      return false;
+    }
+    const auto win_pos = layer->GetPosition();
+    const auto win_end_pos = win_pos + win->Size();
+    return win_pos.x <= pos.x && pos.x < win_end_pos.x &&
+           win_pos.y <= pos.y && pos.y < win_end_pos.y;
+  };
+  auto it = std::find_if(layer_stack_.rbegin(), layer_stack_.rend(), pred);
+  if (it == layer_stack_.rend()) {
+    return nullptr;
+  }
+  return *it;
 }
-// #@@range_end(layermgr_findlayer_bypos)
 
-
-
-// #@@range_begin(layermgr_findlayer)
 Layer* LayerManager::FindLayer(unsigned int id) {
-    auto pred = [id](const std::unique_ptr<Layer>& elem) {
-        return elem->ID() == id;
-    };
-    auto it = std::find_if(layers_.begin(), layers_.end(), pred);
-    if (it == layers_.end()) {
-        return nullptr;
-    }
-    return it->get();
+  auto pred = [id](const std::unique_ptr<Layer>& elem) {
+    return elem->ID() == id;
+  };
+  auto it = std::find_if(layers_.begin(), layers_.end(), pred);
+  if (it == layers_.end()) {
+    return nullptr;
+  }
+  return it->get();
 }
-// #@@range_end(layermgr_findlayer)
+
+namespace {
+  FrameBuffer* screen;
+}
 
 LayerManager* layer_manager;
+
+void InitializeLayer() {
+  const auto screen_size = ScreenSize();
+
+  auto bgwindow = std::make_shared<Window>(
+      screen_size.x, screen_size.y, screen_config.pixel_format);
+  DrawDesktop(*bgwindow->Writer());
+
+  auto console_window = std::make_shared<Window>(
+      Console::kColumns * 8, Console::kRows * 16, screen_config.pixel_format);
+  console->SetWindow(console_window);
+
+  screen = new FrameBuffer;
+  if (auto err = screen->Initialize(screen_config)) {
+    Log(kError, "failed to initialize frame buffer: %s at %s:%d\n",
+        err.Name(), err.File(), err.Line());
+    exit(1);
+  }
+
+  layer_manager = new LayerManager;
+  layer_manager->SetWriter(screen);
+
+  auto bglayer_id = layer_manager->NewLayer()
+    .SetWindow(bgwindow)
+    .Move({0, 0})
+    .ID();
+  console->SetLayerID(layer_manager->NewLayer()
+    .SetWindow(console_window)
+    .Move({0, 0})
+    .ID());
+
+  layer_manager->UpDown(bglayer_id, 0);
+  layer_manager->UpDown(console->LayerID(), 1);
+}

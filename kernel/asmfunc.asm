@@ -1,16 +1,21 @@
+; asmfunc.asm
+;
+; System V AMD64 Calling Convention
+; Registers: RDI, RSI, RDX, RCX, R8, R9
+
 bits 64
 section .text
 
-global IoOut32
+global IoOut32  ; void IoOut32(uint16_t addr, uint32_t data);
 IoOut32:
-    mov dx, di
-    mov eax, esi
+    mov dx, di    ; dx = addr
+    mov eax, esi  ; eax = data
     out dx, eax
     ret
 
-global IoIn32
+global IoIn32  ; uint32_t IoIn32(uint16_t addr);
 IoIn32:
-    mov dx, di
+    mov dx, di    ; dx = addr
     in eax, dx
     ret
 
@@ -31,8 +36,6 @@ LoadIDT:
     mov rsp, rbp
     pop rbp
     ret
-    
-
 
 global LoadGDT  ; void LoadGDT(uint16_t limit, uint64_t offset);
 LoadGDT:
@@ -46,10 +49,6 @@ LoadGDT:
     pop rbp
     ret
 
-
-
-
-; #@@range_begin(set_cs)
 global SetCSSS  ; void SetCSSS(uint16_t cs, uint16_t ss);
 SetCSSS:
     push rbp
@@ -63,9 +62,7 @@ SetCSSS:
     mov rsp, rbp
     pop rbp
     ret
-; #@@range_end(set_cs)
 
-; #@@range_begin(set_dsall)
 global SetDSAll  ; void SetDSAll(uint16_t value);
 SetDSAll:
     mov ds, di
@@ -73,17 +70,11 @@ SetDSAll:
     mov fs, di
     mov gs, di
     ret
-; #@@range_end(set_dsall)
 
-; #@@range_begin(set_cr3)
 global SetCR3  ; void SetCR3(uint64_t value);
 SetCR3:
     mov cr3, rdi
     ret
-; #@@range_end(set_cr3)
-
-
-
 
 extern kernel_main_stack
 extern KernelMainNewStack

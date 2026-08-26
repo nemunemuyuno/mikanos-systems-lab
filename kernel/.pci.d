@@ -32,4 +32,5 @@ pci.o: pci.cpp pci.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/functional \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit error.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h asmfunc.h
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h asmfunc.h \
+  logger.hpp
