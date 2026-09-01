@@ -39,4 +39,7 @@ timer.o: timer.cpp timer.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h \
   message.hpp interrupt.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array \
-  x86_descriptor.hpp acpi.hpp
+  x86_descriptor.hpp acpi.hpp task.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional error.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h

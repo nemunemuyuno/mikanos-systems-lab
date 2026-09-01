@@ -136,6 +136,9 @@ const PixelColor kDesktopFGColor{255, 255, 255};
 
 void DrawDesktop(PixelWriter& writer);
 
+
+//こいつらがグローバル変数になっていて、これはinitializegraphicsで設定されて、
+//こいつらを使うことでwrite関連の設定が抽象化されてる
 extern FrameBufferConfig screen_config;
 extern PixelWriter* screen_writer;
 Vector2D<int> ScreenSize();

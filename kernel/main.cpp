@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdio>
 
+#include <array>
 #include <numeric>
 #include <vector>
 #include <deque>
@@ -33,6 +34,8 @@
 #include "timer.hpp"
 #include "acpi.hpp"
 #include "keyboard.hpp"
+#include "task.hpp"
+#include "terminal.hpp"
 
 
 
@@ -50,12 +53,11 @@ int printk(const char* format, ...) {
   return result;
 }
 
-std::shared_ptr<Window> main_window;
+std::shared_ptr<ToplevelWindow> main_window;
 unsigned int main_window_layer_id;
 void InitializeMainWindow() {
-  main_window = std::make_shared<Window>(
-      160, 52, screen_config.pixel_format);
-  DrawWindow(*main_window->Writer(), "Hello Window");
+  main_window = std::make_shared<ToplevelWindow>(
+      160, 52, screen_config.pixel_format, "Hello Window");
 
   main_window_layer_id = layer_manager->NewLayer()
     .SetWindow(main_window)
@@ -68,67 +70,68 @@ void InitializeMainWindow() {
 
 
 
-std::shared_ptr<Window> text_window;
+// #@@range_begin(create_text_window)
+std::shared_ptr<ToplevelWindow> text_window;
 unsigned int text_window_layer_id;
 void InitializeTextWindow() {
-    const int win_w = 160;
-    const int win_h = 52;
+  const int win_w = 160;
+  const int win_h = 52;
 
-    text_window = std::make_shared<Window>(win_w, win_h, screen_config.pixel_format);
-    DrawWindow(*text_window->Writer(), "Text Box Test");
-    DrawTextbox(*text_window->Writer(), {4, 24}, {win_w - 8, win_h - 24 - 4});
+  text_window = std::make_shared<ToplevelWindow>(
+      win_w, win_h, screen_config.pixel_format, "Text Box Test");
+  DrawTextbox(*text_window->InnerWriter(), {0, 0}, text_window->InnerSize());
+// #@@range_end(create_text_window)
 
-    text_window_layer_id = layer_manager->NewLayer()
-      .SetWindow(text_window)
-      .SetDraggable(true)
-      .Move({350, 200})
-      .ID();
+  text_window_layer_id = layer_manager->NewLayer()
+    .SetWindow(text_window)
+    .SetDraggable(true)
+    .Move({350, 200})
+    .ID();
 
-    layer_manager->UpDown(text_window_layer_id, std::numeric_limits<int>::max());
+  layer_manager->UpDown(text_window_layer_id, std::numeric_limits<int>::max());
 }
+
 
 int text_window_index;
 
-// #@@range_begin(draw_cursor)
+// #@@range_begin(draw_text_cursor)
 void DrawTextCursor(bool visible) {
   const auto color = visible ? ToColor(0) : ToColor(0xffffff);
-  const auto pos = Vector2D<int>{8 + 8*text_window_index, 24 + 5};
-  FillRectangle(*text_window->Writer(), pos, {7, 15}, color);
+  const auto pos = Vector2D<int>{4 + 8*text_window_index, 5};
+  FillRectangle(*text_window->InnerWriter(), pos, {7, 15}, color);
 }
-// #@@range_end(draw_cursor)
-// #@@range_begin(input_text)
+// #@@range_end(draw_text_cursor)
+
 void InputTextWindow(char c) {
   if (c == 0) {
     return;
   }
 
-  auto pos = []() { return Vector2D<int>{8 + 8*text_window_index, 24 + 6}; };
+  auto pos = []() { return Vector2D<int>{4 + 8*text_window_index, 6}; };
 
-  const int max_chars = (text_window->Width() - 16) / 8 - 1;
+  const int max_chars = (text_window->InnerSize().x - 8) / 8 - 1;
   if (c == '\b' && text_window_index > 0) {
     DrawTextCursor(false);
     --text_window_index;
-    FillRectangle(*text_window->Writer(), pos(), {8, 16}, ToColor(0xffffff));
+    FillRectangle(*text_window->InnerWriter(), pos(), {8, 16}, ToColor(0xffffff));
     DrawTextCursor(true);
   } else if (c >= ' ' && text_window_index < max_chars) {
     DrawTextCursor(false);
-    WriteAscii(*text_window->Writer(), pos(), c, ToColor(0));
+    WriteAscii(*text_window->InnerWriter(), pos(), c, ToColor(0));
     ++text_window_index;
     DrawTextCursor(true);
   }
 
   layer_manager->Draw(text_window_layer_id);
 }
-// #@@range_end(input_text)
 
 
 // #@@range_begin(taskb_window)
-std::shared_ptr<Window> task_b_window;
+std::shared_ptr<ToplevelWindow> task_b_window;
 unsigned int task_b_window_layer_id;
 void InitializeTaskBWindow() {
-  task_b_window = std::make_shared<Window>(
-      160, 52, screen_config.pixel_format);
-  DrawWindow(*task_b_window->Writer(), "TaskB Window");
+  task_b_window = std::make_shared<ToplevelWindow>(
+      160, 52, screen_config.pixel_format, "TaskB Window");
 
   task_b_window_layer_id = layer_manager->NewLayer()
     .SetWindow(task_b_window)
@@ -138,24 +141,50 @@ void InitializeTaskBWindow() {
 
   layer_manager->UpDown(task_b_window_layer_id, std::numeric_limits<int>::max());
 }
+
 // #@@range_end(taskb_window)
 
-// #@@range_begin(task_context)
-struct TaskContext {
-  uint64_t cr3, rip, rflags, reserved1; // offset 0x00
-  uint64_t cs, ss, fs, gs; // offset 0x20
-  uint64_t rax, rbx, rcx, rdx, rdi, rsi, rsp, rbp; // offset 0x40
-  uint64_t r8, r9, r10, r11, r12, r13, r14, r15; // offset 0x80
-  std::array<uint8_t, 512> fxsave_area; // offset 0xc0
-} __attribute__((packed));
-alignas(16) TaskContext task_b_ctx, task_a_ctx;
-// #@@range_end(task_context)
 
+// #@@range_begin(taskb)
+void TaskB(uint64_t task_id, int64_t data) {
+  printk("TaskB: task_id=%lu, data=%lu\n", task_id, data);
+  char str[128];
+  int count = 0;
 
+  __asm__("cli");
+  Task& task = task_manager->CurrentTask();
+  __asm__("sti");
 
+  while (true) {
+    ++count;
+    sprintf(str, "%010d", count);
+    FillRectangle(*task_b_window->InnerWriter(), {20, 4}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
+    WriteString(*task_b_window->InnerWriter(), {20, 4}, str, {0, 0, 0});
 
+    Message msg{Message::kLayer, task_id};
+    msg.arg.layer.layer_id = task_b_window_layer_id;
+    msg.arg.layer.op = LayerOperation::Draw;
+    __asm__("cli");
+    task_manager->SendMessage(1, msg);
+    __asm__("sti");
 
-std::deque<Message>* main_queue;
+    while (true) {
+      __asm__("cli");
+      auto msg = task.ReceiveMessage();
+      if (!msg) {
+        task.Sleep();
+        __asm__("sti");
+        continue;
+      }
+
+      if (msg->type == Message::kLayerFinish) {
+        __asm__("sti");
+        break;
+      }
+    }
+  }
+}
+// #@@range_end(taskb)
 
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 
@@ -175,26 +204,20 @@ extern "C" void KernelMainNewStack(
   InitializeSegmentation();
   InitializePaging();
   InitializeMemoryManager(memory_map);
-  ::main_queue = new std::deque<Message>(32);
-  InitializeInterrupt(main_queue);
+  InitializeInterrupt();
 
   InitializePCI();
-  usb::xhci::Initialize();
 
   InitializeLayer();
   InitializeMainWindow();
   InitializeTextWindow();
-  InitializeMouse();
+  InitializeTaskBWindow();
   layer_manager->Draw({{0, 0}, ScreenSize()});
 // #@@range_end(main_function)
 
   // #@@range_begin(add_sample_timer)
   acpi::Initialize(acpi_table);
-  InitializeLAPICTimer(*main_queue);
-
-    // #@@range_begin(call_initkb)
-    InitializeKeyboard(*main_queue);
-    // #@@range_end(call_initkb)
+  InitializeLAPICTimer();
 
   // #@@range_begin(add_timer)
   const int kTextboxCursorTimer = 1;
@@ -205,6 +228,31 @@ extern "C" void KernelMainNewStack(
   bool textbox_cursor_visible = false;
   // #@@range_end(add_timer)
 
+
+  // #@@range_begin(current_task)
+  InitializeTask();
+  Task& main_task = task_manager->CurrentTask();
+
+  
+  usb::xhci::Initialize();
+  InitializeKeyboard();
+  InitializeMouse();
+  active_layer->Activate(task_b_window_layer_id);
+
+
+  // #@@range_end(current_task)
+  const uint64_t taskb_id = task_manager->NewTask()
+    .InitContext(TaskB, 45)
+    .Wakeup()
+    .ID();
+  // #@@range_begin(start_taskterm)
+  const uint64_t task_terminal_id = task_manager->NewTask()
+    .InitContext(TaskTerminal, 0)
+    .Wakeup()
+    .ID();
+  // #@@range_end(start_taskterm)
+
+
   char str[128];
 
   while (true) {
@@ -212,44 +260,69 @@ extern "C" void KernelMainNewStack(
     const auto tick = timer_manager->CurrentTick();
     __asm__("sti");
     sprintf(str, "%010lu", tick);
-    FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
-    WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
+    FillRectangle(*main_window->InnerWriter(), {20, 4}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
+    WriteString(*main_window->InnerWriter(), {20, 4}, str, {0, 0, 0});
     layer_manager->Draw(main_window_layer_id);
-
+    // #@@range_begin(sleep_nomsg)
     __asm__("cli");
-    if (main_queue->size() == 0) {
-      __asm__("sti\n\thlt");
+    auto msg = main_task.ReceiveMessage();
+    if (!msg) {
+      main_task.Sleep();
+      __asm__("sti");
       continue;
     }
+    // #@@range_end(sleep_nomsg)
 
-    Message msg = main_queue->front();
-    main_queue->pop_front();
     __asm__("sti");
 
-    switch (msg.type) {
+    switch (msg->type) {
     case Message::kInterruptXHCI:
       usb::xhci::ProcessEvents();
       break;
-    // #@@range_begin(timer_event)
+    // #@@range_begin(send_timermsg)
     case Message::kTimerTimeout:
-      if (msg.arg.timer.value == kTextboxCursorTimer) {
+      if (msg->arg.timer.value == kTextboxCursorTimer) {
         __asm__("cli");
         timer_manager->AddTimer(
-            Timer{msg.arg.timer.timeout + kTimer05Sec, kTextboxCursorTimer});
+            Timer{msg->arg.timer.timeout + kTimer05Sec, kTextboxCursorTimer});
         __asm__("sti");
         textbox_cursor_visible = !textbox_cursor_visible;
         DrawTextCursor(textbox_cursor_visible);
         layer_manager->Draw(text_window_layer_id);
+
+        __asm__("cli");
+        task_manager->SendMessage(task_terminal_id, *msg);
+        __asm__("sti");
       }
       break;
-    // #@@range_end(timer_event)
-    // #@@range_begin(event_handling)
+    // #@@range_end(send_timermsg)
+    // #@@range_begin(sendkey_to_active)
     case Message::kKeyPush:
-      InputTextWindow(msg.arg.keyboard.ascii);
+      if (auto act = active_layer->GetActive(); act == text_window_layer_id) {
+        InputTextWindow(msg->arg.keyboard.ascii);
+      } else if (act == task_b_window_layer_id) {
+        if (msg->arg.keyboard.ascii == 's') {
+          printk("sleep TaskB: %s\n", task_manager->Sleep(taskb_id).Name());
+        } else if (msg->arg.keyboard.ascii == 'w') {
+          printk("wakeup TaskB: %s\n", task_manager->Wakeup(taskb_id).Name());
+        }
+      } else {
+        printk("key push not handled: keycode %02x, ascii %02x\n",
+            msg->arg.keyboard.keycode,
+            msg->arg.keyboard.ascii);
+      }
       break;
-    // #@@range_end(event_handling)
+    // #@@range_end(sendkey_to_active)
+    // #@@range_begin(handle_layermsg)
+    case Message::kLayer:
+      ProcessLayerMessage(*msg);
+      __asm__("cli");
+      task_manager->SendMessage(msg->src_task, Message{Message::kLayerFinish});
+      __asm__("sti");
+      break;
+    // #@@range_end(handle_layermsg)
     default:
-      Log(kError, "Unknown message type: %d\n", msg.type);
+      Log(kError, "Unknown message type: %d\n", msg->type);
     }
   }
 }

@@ -20,4 +20,12 @@ newlib_support.o: newlib_support.c \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/_timespec.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/_pthreadtypes.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/sys/sched.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/machine/types.h
+  /home/ramur/osbook/devenv/x86_64-elf/include/machine/types.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/sys/stat.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/time.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/sys/reent.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/machine/time.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/sys/_locale.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/newlib.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/signal.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/sys/signal.h

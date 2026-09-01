@@ -43,6 +43,6 @@ mouse.o: mouse.cpp mouse.hpp \
   window.hpp frame_buffer.hpp error.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array message.hpp \
   usb/classdriver/mouse.hpp usb/classdriver/hid.hpp \
   usb/classdriver/base.hpp usb/endpoint.hpp usb/setupdata.hpp

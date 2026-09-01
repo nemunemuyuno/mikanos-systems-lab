@@ -33,4 +33,12 @@ interrupt.o: interrupt.cpp interrupt.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/deque \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__split_buffer \
-  x86_descriptor.hpp message.hpp asmfunc.h segment.hpp timer.hpp
+  x86_descriptor.hpp message.hpp asmfunc.h segment.hpp timer.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/queue \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/vector \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__bit_reference \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/climits \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h task.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional error.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h

@@ -39,8 +39,17 @@ layer.o: layer.cpp layer.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/climits \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__split_buffer \
-  graphics.hpp frame_buffer_config.hpp window.hpp frame_buffer.hpp \
-  error.hpp /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
+  graphics.hpp frame_buffer_config.hpp window.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string_view \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__string \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array console.hpp \
-  logger.hpp
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cwchar \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cwctype \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cctype \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/ctype.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/wctype.h \
+  frame_buffer.hpp error.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array message.hpp \
+  console.hpp logger.hpp

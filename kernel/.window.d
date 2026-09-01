@@ -36,8 +36,16 @@ window.o: window.cpp window.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__split_buffer \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional \
-  graphics.hpp frame_buffer_config.hpp frame_buffer.hpp error.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string_view \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__string \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cwchar \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cwctype \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cctype \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/ctype.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/wctype.h \
+  graphics.hpp frame_buffer_config.hpp frame_buffer.hpp error.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array logger.hpp \
   font.hpp
