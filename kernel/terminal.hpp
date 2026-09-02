@@ -29,9 +29,20 @@ class Terminal {
   void DrawCursor(bool visible);
   Vector2D<int> CalcCursorPos() const;
 
+  //キー入力を1行分溜めておくバッファ
   int linebuf_index_{0};
   std::array<char, kLineMax> linebuf_{};
+  //入力がターミナルの最終行に来た時に1行画面を上にずらす
   void Scroll1();
+
+  void ExecuteLine();
+  void Print(const char* s);
+
+  // #@@range_begin(term_fields)
+  std::deque<std::array<char, kLineMax>> cmd_history_{};
+  int cmd_history_index_{-1};
+  Rectangle<int> HistoryUpDown(int direction);
+  // #@@range_end(term_fields)
 };
 
 void TaskTerminal(uint64_t task_id, int64_t data);

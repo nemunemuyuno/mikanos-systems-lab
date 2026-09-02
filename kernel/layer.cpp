@@ -230,6 +230,7 @@ void ActiveLayer::Activate(unsigned int layer_id) {
 // #@@range_end(al_activate)
 
 ActiveLayer* active_layer;
+std::map<unsigned int, uint64_t>* layer_task_map;
 
 
 
@@ -266,6 +267,7 @@ void InitializeLayer() {
   layer_manager->UpDown(bglayer_id, 0);
   layer_manager->UpDown(console->LayerID(), 1);
   active_layer = new ActiveLayer{*layer_manager};
+  layer_task_map = new std::map<unsigned int, uint64_t>;
 }
 
 
