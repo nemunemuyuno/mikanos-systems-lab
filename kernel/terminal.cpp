@@ -270,6 +270,7 @@ void Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command,
 
   auto argv = MakeArgVector(command, first_arg);
 
+  //ELF ヘッダに入っている 「実行開始アドレス」
   auto entry_addr = elf_header->e_entry;
   entry_addr += reinterpret_cast<uintptr_t>(&file_buf[0]);
   using Func = int (int, char**);
