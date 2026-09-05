@@ -51,9 +51,6 @@ TaskBをActivate
 TaskB / Terminal Taskを生成・Wakeup
 ```
 
-教訓：**初期化関数にはコード上明示されていない前提条件があることがある。`Activate()`は「Mouse Layerが初期化済み」という暗黙の前提を持っていた。**
-
-
 
 ### 第16章：Terminal初回Activate時のz-orderずれ
 
@@ -76,4 +73,3 @@ erase → 正しい位置へinsert
 
 となり、Mouse直下へ正常に移動する。
 
-教訓：**「既存Layerの高さ変更」と「stack外のLayerの初回挿入」で、同じheight指定でも結果が異なることがある。**
