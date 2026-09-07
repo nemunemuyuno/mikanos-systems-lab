@@ -415,7 +415,7 @@ void Terminal::ExecuteLine() {
     // #@@range_end(pass_arg)
   }
 }
-// #@@range_end(execute_line)
+// #@@range_end(execute_line)予備
 
 Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command, char* first_arg) {
   // #@@range_begin(load_file)
