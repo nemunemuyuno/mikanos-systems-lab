@@ -37,6 +37,7 @@
 #include "task.hpp"
 #include "terminal.hpp"
 #include "fat.hpp"
+#include "syscall.hpp"
 
 
 
@@ -144,6 +145,7 @@ extern "C" void KernelMainNewStack(
   InitializeSegmentation();
   InitializePaging();
   InitializeMemoryManager(memory_map);
+  InitializeTSS();
   InitializeInterrupt();
 
   fat::Initialize(volume_image);
@@ -168,11 +170,12 @@ extern "C" void KernelMainNewStack(
   bool textbox_cursor_visible = false;
   // #@@range_end(add_timer)
 
+  InitializeSyscall();
 
-  // #@@range_begin(current_task)
 
   InitializeTask();
   Task& main_task = task_manager->CurrentTask();
+  terminals = new std::map<uint64_t, Terminal*>;
   const uint64_t task_terminal_id = task_manager->NewTask()
     .InitContext(TaskTerminal, 0)
     .Wakeup()
@@ -182,23 +185,7 @@ extern "C" void KernelMainNewStack(
   InitializeKeyboard();
   InitializeMouse();
 
-  // #@@range_begin(dump_volume)
-  uint8_t* p = reinterpret_cast<uint8_t*>(volume_image);
-  printk("Volume Image:\n");
-  for (int i = 0; i < 16; ++i) {
-    printk("%04x:", i * 16);
-    for (int j = 0; j < 8; ++j) {
-      printk(" %02x", *p);
-      ++p;
-    }
-    printk(" ");
-    for (int j = 0; j < 8; ++j) {
-      printk(" %02x", *p);
-      ++p;
-    }
-    printk("\n");
-  }
-  // #@@range_end(dump_volume)
+
 
   char str[128];
 

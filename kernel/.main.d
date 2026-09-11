@@ -62,4 +62,4 @@ main.o: main.cpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tree \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__node_handle \
   timer.hpp /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/queue \
-  acpi.hpp keyboard.hpp task.hpp terminal.hpp fat.hpp
+  acpi.hpp keyboard.hpp task.hpp terminal.hpp fat.hpp syscall.hpp

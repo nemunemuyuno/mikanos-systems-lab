@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <map>
+#include <optional>
 #include "window.hpp"
 #include "task.hpp"
 #include "layer.hpp"
@@ -21,9 +22,14 @@ class Terminal {
   //これ多分入力文字とカーソルの2文字分だけの描画範囲
   Rectangle<int> InputKey(uint8_t modifier, uint8_t keycode, char ascii);
 
+  // #@@range_begin(len_default_value)
+  void Print(const char* s, std::optional<size_t> len = std::nullopt);
+  // #@@range_end(len_default_value)
+
  private:
   std::shared_ptr<ToplevelWindow> window_;
   unsigned int layer_id_;
+  uint64_t task_id_;
 
   Vector2D<int> cursor_{0, 0};
   bool cursor_visible_{false};
@@ -38,8 +44,6 @@ class Terminal {
 
   void ExecuteLine();
   Error ExecuteFile(const fat::DirectoryEntry& file_entry, char* command, char* first_arg);
-
-  void Print(const char* s);
   void Print(char c);
 
   // #@@range_begin(term_fields)
@@ -49,5 +53,6 @@ class Terminal {
   // #@@range_end(term_fields)
 };
 
+extern std::map<uint64_t, Terminal*>* terminals;
 void TaskTerminal(uint64_t task_id, int64_t data);
 // #@@range_end(term)

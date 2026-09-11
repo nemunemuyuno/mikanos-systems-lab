@@ -57,6 +57,12 @@ TaskContext& Task::Context() {
 }
 // #@@range_end(task_context)
 
+// #@@range_begin(task_os_stack_ptr)
+uint64_t& Task::OSStackPointer() {
+  return os_stack_ptr_;
+}
+// #@@range_end(task_os_stack_ptr)
+
 // #@@range_begin(task_methods)
 uint64_t Task::ID() const {
   return id_;
@@ -111,36 +117,18 @@ Task& TaskManager::NewTask() {
 }
 
 
-// #@@range_begin(switchtask)
-void TaskManager::SwitchTask(bool current_sleep) {
-  auto& level_queue = running_[current_level_];
-  Task* current_task = level_queue.front();
-  level_queue.pop_front();
-  if (!current_sleep) {
-    level_queue.push_back(current_task);
+// #@@range_begin(taskmgr_switchtask)
+void TaskManager::SwitchTask(const TaskContext& current_ctx) {
+  TaskContext& task_ctx = task_manager->CurrentTask().Context();
+  memcpy(&task_ctx, &current_ctx, sizeof(TaskContext));
+  Task* current_task = RotateCurrentRunQueue(false);
+  if (&CurrentTask() != current_task) {
+    RestoreContext(&CurrentTask().Context());
   }
-  if (level_queue.empty()) {
-    level_changed_ = true;
-  }
-
-  if (level_changed_) {
-    level_changed_ = false;
-    for (int lv = kMaxLevel; lv >= 0; --lv) {
-      if (!running_[lv].empty()) {
-        current_level_ = lv;
-        break;
-      }
-    }
-  }
-
-  Task* next_task = running_[current_level_].front();
-
-  SwitchContext(&next_task->Context(), &current_task->Context());
 }
-// #@@range_end(switchtask)
+// #@@range_end(taskmgr_switchtask)
 
-
-// #@@range_begin(sleep)
+// #@@range_begin(taskmgr_sleep)
 void TaskManager::Sleep(Task* task) {
   if (!task->Running()) {
     return;
@@ -149,13 +137,14 @@ void TaskManager::Sleep(Task* task) {
   task->SetRunning(false);
 
   if (task == running_[current_level_].front()) {
-    SwitchTask(true);
+    Task* current_task = RotateCurrentRunQueue(true);
+    SwitchContext(&CurrentTask().Context(), &current_task->Context());
     return;
   }
 
   Erase(running_[task->Level()], task);
 }
-// #@@range_end(sleep)
+// #@@range_end(taskmgr_sleep)
 
 // #@@range_begin(taskmgr_sleep_id)
 Error TaskManager::Sleep(uint64_t id) {
@@ -259,7 +248,31 @@ void TaskManager::ChangeLevelRunning(Task* task, int level) {
 // #@@range_end(chlv_running)
 
 
+// #@@range_begin(taskmgr_rotate_runq)
+Task* TaskManager::RotateCurrentRunQueue(bool current_sleep) {
+  auto& level_queue = running_[current_level_];
+  Task* current_task = level_queue.front();
+  level_queue.pop_front();
+  if (!current_sleep) {
+    level_queue.push_back(current_task);
+  }
+  if (level_queue.empty()) {
+    level_changed_ = true;
+  }
 
+  if (level_changed_) {
+    level_changed_ = false;
+    for (int lv = kMaxLevel; lv >= 0; --lv) {
+      if (!running_[lv].empty()) {
+        current_level_ = lv;
+        break;
+      }
+    }
+  }
+
+  return current_task;
+}
+// #@@range_end(taskmgr_rotate_runq)
 
 
 TaskManager* task_manager;

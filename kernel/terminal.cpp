@@ -1,6 +1,7 @@
 #include "terminal.hpp"
 
 #include <cstring>
+#include <limits>
 
 #include "font.hpp"
 #include "layer.hpp"
@@ -13,34 +14,59 @@
 
 // #@@range_begin(make_argv)
 namespace {
-  std::vector<char*> MakeArgVector(char* command, char* first_arg) {
-    std::vector<char*> argv;
-    argv.push_back(command);
-    if (!first_arg) {
-      return argv;
+// #@@range_begin(make_argv)
+WithError<int> MakeArgVector(char* command, char* first_arg,
+    char** argv, int argv_len, char* argbuf, int argbuf_len) {
+  int argc = 0;
+  int argbuf_index = 0;
+
+  auto push_to_argv = [&](const char* s) {
+    if (argc >= argv_len || argbuf_index >= argbuf_len) {
+      return MAKE_ERROR(Error::kFull);
     }
 
-    char* p = first_arg;
-    while (true) {
-      while (isspace(p[0])) {
-        ++p;
-      }
-      if (p[0] == 0) {
-        break;
-      }
-      argv.push_back(p);
+    argv[argc] = &argbuf[argbuf_index];
+    ++argc;
+    strcpy(&argbuf[argbuf_index], s);
+    argbuf_index += strlen(s) + 1;
+    return MAKE_ERROR(Error::kSuccess);
+  };
 
-      while (p[0] != 0 && !isspace(p[0])) {
-        ++p;
-      }
-      if (p[0] == 0) {
-        break;
-      }
-      p[0] = 0;
+  if (auto err = push_to_argv(command)) {
+    return { argc, err };
+  }
+  if (!first_arg) {
+    return { argc, MAKE_ERROR(Error::kSuccess) };
+  }
+  // #@@range_end(make_argv)
+
+  char* p = first_arg;
+  while (true) {
+    while (isspace(p[0])) {
       ++p;
     }
-    return argv;
+    if (p[0] == 0) {
+      break;
+    }
+    const char* arg = p;
+
+    while (p[0] != 0 && !isspace(p[0])) {
+      ++p;
+    }
+    // here: p[0] == 0 || isspace(p[0])
+    const bool is_end = p[0] == 0;
+    p[0] = 0;
+    if (auto err = push_to_argv(arg)) {
+      return { argc, err };
+    }
+    if (is_end) {
+      break;
+    }
+    ++p;
   }
+
+  return { argc, MAKE_ERROR(Error::kSuccess) };
+}
 
 // #@@range_begin(get_phdr)
 Elf64_Phdr* GetProgramHeader(Elf64_Ehdr* ehdr) {
@@ -99,11 +125,14 @@ WithError<size_t> SetupPageMap(
   while (num_4kpages > 0) {
     const auto entry_index = addr.Part(page_map_level);
 
+    // #@@range_begin(set_userbit)
     auto [ child_map, err ] = SetNewPageMapIfNotPresent(page_map[entry_index]);
     if (err) {
       return { num_4kpages, err };
     }
     page_map[entry_index].bits.writable = 1;
+    page_map[entry_index].bits.user = 1;
+    // #@@range_end(set_userbit)
 
     if (page_map_level == 1) {
       --num_4kpages;
@@ -431,20 +460,54 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
     return MAKE_ERROR(Error::kSuccess);
   }
 
-  // #@@range_begin(load_app)
-  auto argv = MakeArgVector(command, first_arg);
   if (auto err = LoadELF(elf_header)) {
     return err;
   }
 
+  // #@@range_begin(arrange_args)
+  //argvをapp領域へ移す
+  LinearAddress4Level args_frame_addr{0xffff'ffff'ffff'f000};
+  if (auto err = SetupPageMaps(args_frame_addr, 1)) {
+    return err;
+  }
+  auto argv = reinterpret_cast<char**>(args_frame_addr.value);
+  int argv_len = 32; // argv = 8x32 = 256 bytes
+  auto argbuf = reinterpret_cast<char*>(args_frame_addr.value + sizeof(char**) * argv_len);
+  int argbuf_len = 4096 - sizeof(char**) * argv_len;
+  auto argc = MakeArgVector(command, first_arg, argv, argv_len, argbuf, argbuf_len);
+  if (argc.error) {
+    return argc.error;
+  }
+  // #@@range_end(arrange_args)
+
+  // #@@range_begin(call_app)
+  //stackアドレスの開始
+  LinearAddress4Level stack_frame_addr{0xffff'ffff'ffff'e000};
+  if (auto err = SetupPageMaps(stack_frame_addr, 1)) {
+    return err;
+  }
+
+  // #@@range_begin(start_app)
+  __asm__("cli");
+  auto& task = task_manager->CurrentTask();
+  __asm__("sti");
+
   auto entry_addr = elf_header->e_entry;
-  using Func = int (int, char**);
-  auto f = reinterpret_cast<Func*>(entry_addr);
-  auto ret = f(argv.size(), &argv[0]);
+  int ret = CallApp(argc.value, argv, 3 << 3 | 3, entry_addr,
+                    stack_frame_addr.value + 4096 - 8,
+                    &task.OSStackPointer());
 
   char s[64];
   sprintf(s, "app exited. ret = %d\n", ret);
   Print(s);
+  // #@@range_end(start_app)
+
+  /*
+  char s[64];
+  sprintf(s, "app exited. ret = %d\n", ret);
+  Print(s);
+  */
+  // #@@range_end(call_app)
 
   const auto addr_first = GetFirstLoadAddress(elf_header);
   if (auto err = CleanPageMaps(LinearAddress4Level{addr_first})) {
@@ -480,19 +543,40 @@ void Terminal::Print(char c) {
 }
 // #@@range_end(print_c)
 
-// #@@range_begin(print_s)
-void Terminal::Print(const char* s) {
+
+// #@@range_begin(print_redraw)
+void Terminal::Print(const char* s, std::optional<size_t> len) {
+  const auto cursor_before = CalcCursorPos();
   DrawCursor(false);
 
-  while (*s) {
-    Print(*s);
-    ++s;
+  if (len) {
+    for (size_t i = 0; i < *len; ++i) {
+      Print(*s);
+      ++s;
+    }
+  } else {
+    while (*s) {
+      Print(*s);
+      ++s;
+    }
   }
 
   DrawCursor(true);
-}
-// #@@range_end(print_s)
+  const auto cursor_after = CalcCursorPos();
 
+  Vector2D<int> draw_pos{ToplevelWindow::kTopLeftMargin.x, cursor_before.y};
+  Vector2D<int> draw_size{window_->InnerSize().x,
+                          cursor_after.y - cursor_before.y + 16};
+
+  Rectangle<int> draw_area{draw_pos, draw_size};
+
+  Message msg = MakeLayerMessage(
+      task_id_, LayerID(), LayerOperation::DrawArea, draw_area);
+  __asm__("cli");
+  task_manager->SendMessage(1, msg);
+  __asm__("sti");
+}
+// #@@range_end(print_redraw)
 
 // #@@range_begin(history_updown)
 Rectangle<int> Terminal::HistoryUpDown(int direction) {
@@ -522,6 +606,7 @@ Rectangle<int> Terminal::HistoryUpDown(int direction) {
 }
 // #@@range_end(history_updown)
 
+std::map<uint64_t, Terminal*>* terminals;
 
 void TaskTerminal(uint64_t task_id, int64_t data) {
   __asm__("cli");
@@ -531,6 +616,7 @@ void TaskTerminal(uint64_t task_id, int64_t data) {
   active_layer->Activate(terminal->LayerID());
   // #@@range_begin(register_taskmap)
   layer_task_map->insert(std::make_pair(terminal->LayerID(), task_id));
+  (*terminals)[task_id] = terminal;
   __asm__("sti");
   // #@@range_end(register_taskmap)
 

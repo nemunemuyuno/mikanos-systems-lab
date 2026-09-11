@@ -96,10 +96,11 @@ KernelMain:
     jmp .fin
 
 
-; #@@range_begin(switch_context)
+; #@@range_begin(switch_ctx)
 global SwitchContext
 SwitchContext:  ; void SwitchContext(void* next_ctx, void* current_ctx);
     mov [rsi + 0x40], rax
+; #@@range_end(switch_ctx)
     mov [rsi + 0x48], rbx
     mov [rsi + 0x50], rcx
     mov [rsi + 0x58], rdx
@@ -135,10 +136,15 @@ SwitchContext:  ; void SwitchContext(void* next_ctx, void* current_ctx);
     mov dx, gs
     mov [rsi + 0x38], rdx
 
+; #@@range_begin(restore_ctx)
     fxsave [rsi + 0xc0]
+    ; fall through to RestoreContext
 
+global RestoreContext
+RestoreContext:  ; void RestoreContext(void* task_context);
     ; iret 用のスタックフレーム
     push qword [rdi + 0x28] ; SS
+; #@@range_end(restore_ctx)
     push qword [rdi + 0x70] ; RSP
     push qword [rdi + 0x10] ; RFLAGS
     push qword [rdi + 0x20] ; CS
@@ -171,5 +177,163 @@ SwitchContext:  ; void SwitchContext(void* next_ctx, void* current_ctx);
 
     mov rdi, [rdi + 0x60]
 
+; #@@range_begin(restore_ctx_ret)
     o64 iret
-; #@@range_end(switch_context)
+; #@@range_end(restore_ctx_ret)
+
+; #@@range_begin(call_app)
+global CallApp
+CallApp:  ; int CallApp(int argc, char** argv, uint16_t ss,
+          ;             uint64_t rip, uint64_t rsp, uint64_t* os_stack_ptr);
+    push rbx
+    push rbp
+    push r12
+    push r13
+    push r14
+    push r15
+    mov [r9], rsp ; OS 用のスタックポインタを保存、C++の第6引数が参照だから、そこに直接入れてる
+
+    push rdx  ; SS
+    push r8   ; RSP
+    add rdx, 8
+    push rdx  ; CS
+    push rcx  ; RIP
+    o64 retf
+    ; アプリケーションが終了してもここには来ない
+; #@@range_end(call_app)
+
+
+; #@@range_begin(inthandler_timer)
+extern LAPICTimerOnInterrupt
+; void LAPICTimerOnInterrupt(const TaskContext& ctx_stack);
+
+global IntHandlerLAPICTimer
+IntHandlerLAPICTimer:  ; void IntHandlerLAPICTimer();
+    push rbp
+    mov rbp, rsp
+
+    ; スタック上に TaskContext 型の構造を構築する
+    sub rsp, 512
+    fxsave [rsp]
+    push r15
+    push r14
+    push r13
+    push r12
+    push r11
+    push r10
+    push r9
+    push r8
+    push qword [rbp]         ; RBP
+    push qword [rbp + 0x20]  ; RSP
+    push rsi
+    push rdi
+    push rdx
+    push rcx
+    push rbx
+    push rax
+
+    mov ax, fs
+    mov bx, gs
+    mov rcx, cr3
+
+    push rbx                 ; GS
+    push rax                 ; FS
+    push qword [rbp + 0x28]  ; SS
+    push qword [rbp + 0x10]  ; CS
+    push rbp                 ; reserved1
+    push qword [rbp + 0x18]  ; RFLAGS
+    push qword [rbp + 0x08]  ; RIP
+    push rcx                 ; CR3
+
+    mov rdi, rsp
+    call LAPICTimerOnInterrupt
+
+    add rsp, 8*8  ; CR3 から GS までを無視
+    pop rax
+    pop rbx
+    pop rcx
+    pop rdx
+    pop rdi
+    pop rsi
+    add rsp, 16   ; RSP, RBP を無視
+    pop r8
+    pop r9
+    pop r10
+    pop r11
+    pop r12
+    pop r13
+    pop r14
+    pop r15
+    fxrstor [rsp]
+
+    mov rsp, rbp
+    pop rbp
+    iretq
+; #@@range_end(inthandler_timer)
+
+
+; #@@range_begin(load_tr)
+global LoadTR
+LoadTR:  ; void LoadTR(uint16_t sel);
+    ltr di
+    ret
+; #@@range_end(load_tr)
+
+
+; #@@range_begin(write_msr)
+global WriteMSR
+WriteMSR:  ; void WriteMSR(uint32_t msr, uint64_t value);
+    mov rdx, rsi
+    shr rdx, 32
+    mov eax, esi
+    mov ecx, edi
+    wrmsr
+    ret
+; #@@range_end(write_msr)
+
+; #@@range_begin(syscall_entry)
+extern syscall_table
+global SyscallEntry
+SyscallEntry:  ; void SyscallEntry(void);
+    push rbp
+    push rcx  ; original RIP
+    push r11  ; original RFLAGS
+
+    ; #@@range_begin(jump_exit_app)
+    push rax  ; システムコール番号を保存
+
+    mov rcx, r10 ;第4引数を戻しているだけ
+    and eax, 0x7fffffff
+    mov rbp, rsp 
+    and rsp, 0xfffffffffffffff0 ;16バイト境界にしてるだけ
+
+    call [syscall_table + 8 * eax]
+    ; rbx, r12-r15 は callee-saved なので呼び出し側で保存しない
+    ; rax は戻り値用なので呼び出し側で保存しない
+
+    mov rsp, rbp
+
+    pop rsi  ; システムコール番号を復帰
+    cmp esi, 0x80000002
+    je  .exit
+    ; #@@range_end(jump_exit_app)
+
+    pop r11
+    pop rcx
+    pop rbp
+    o64 sysret
+
+    ; #@@range_begin(exit_app)
+.exit:
+    mov rsp, rax
+    mov eax, edx
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+
+    ret  ; CallApp の次の行に飛ぶ
+    ; #@@range_end(exit_app)
