@@ -3,6 +3,8 @@
 #include <sys/stat.h>
 #include <stdint.h>
 
+#include "syscall.h"
+
 int close(int fd) {
   errno = EBADF;
   return -1;
@@ -34,11 +36,7 @@ caddr_t sbrk(int incr) {
 }
 
 // #@@range_begin(newlib_write)
-struct SyscallResult {
-  uint64_t value;
-  int error;
-};
-struct SyscallResult SyscallPutString(uint64_t, uint64_t, uint64_t);
+
 
 //fd = 1ならターミナルからの要求ってことだと思うの。こいつ自身はただのprintfのラッパーでしかない
 //printfを使ったら自動的にこいつが呼ばれるから、こいつから仕様のようにsystem callでカーネルに飛ばしてやれば良い
@@ -51,3 +49,7 @@ ssize_t write(int fd, const void* buf, size_t count) {
   return -1;
 }
 // #@@range_end(newlib_write)
+
+void _exit(int status) {
+  SyscallExit(status);
+}
