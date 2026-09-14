@@ -314,9 +314,11 @@ SyscallEntry:  ; void SyscallEntry(void);
     call GetCurrentTaskOSStackPointer
     sti
     mov rdx, [rsp + 0]  ; RDX
-    mov [rax - 16], rdx
+    mov [rax - 16], rdx ;現在のrspの中身をrax,つまりこれからのrspに入れることで、
+                        ;操作を変更しなくて良いようにしている
+                        ;つまりraxに書かれたOS用スタックを指すアドレスをrspに設定する
     mov rdx, [rsp + 8]  ; RAX
-    mov [rax - 8], rdx
+    mov [rax - 8], rdx  ;現在のあ
 
     lea rsp, [rax - 16]
     pop rdx

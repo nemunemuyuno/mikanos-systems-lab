@@ -5,6 +5,7 @@
 #include "graphics.hpp"
 #include "layer.hpp"
 #include "usb/classdriver/mouse.hpp"
+#include "task.hpp"
 
 namespace {
   const char mouse_cursor_shape[kMouseCursorHeight][kMouseCursorWidth + 1] = {
@@ -33,6 +34,48 @@ namespace {
     "         @.@   ",
     "         @@@   ",
   };
+
+  // #@@range_begin(mouse_send_message)
+  void SendMouseMessage(Vector2D<int> newpos, Vector2D<int> posdiff,
+                        uint8_t buttons, uint8_t previous_buttons) {
+    const auto act = active_layer->GetActive();
+    if (!act) {
+      return;
+    }
+    const auto layer = layer_manager->FindLayer(act);
+
+    const auto task_it = layer_task_map->find(act);
+    if (task_it == layer_task_map->end()) {
+      return;
+    }
+
+    const auto relpos = newpos - layer->GetPosition();
+    if (posdiff.x != 0 || posdiff.y != 0) {
+      Message msg{Message::kMouseMove};
+      msg.arg.mouse_move.x = relpos.x;
+      msg.arg.mouse_move.y = relpos.y;
+      msg.arg.mouse_move.dx = posdiff.x;
+      msg.arg.mouse_move.dy = posdiff.y;
+      msg.arg.mouse_move.buttons = buttons;
+      task_manager->SendMessage(task_it->second, msg);
+    }
+
+    // #@@range_begin(send_button_message)
+    if (previous_buttons != buttons) {
+      const auto diff = previous_buttons ^ buttons;
+      for (int i = 0; i < 8; ++i) {
+        if ((diff >> i) & 1) {
+          Message msg{Message::kMouseButton};
+          msg.arg.mouse_button.x = relpos.x;
+          msg.arg.mouse_button.y = relpos.y;
+          msg.arg.mouse_button.press = (buttons >> i) & 1;
+          msg.arg.mouse_button.button = i;
+          task_manager->SendMessage(task_it->second, msg);
+        }
+      }
+    }
+    // #@@range_end(send_button_message)
+  }
 }
 
 void DrawMouseCursor(PixelWriter* pixel_writer, Vector2D<int> position) {
@@ -73,7 +116,10 @@ void Mouse::OnInterrupt(uint8_t buttons, int8_t displacement_x, int8_t displacem
   if (!previous_left_pressed && left_pressed) {
     auto layer = layer_manager->FindLayerByPosition(position_, layer_id_);
     if (layer && layer->IsDraggable()) {
-      drag_layer_id_ = layer->ID();
+      const auto y_layer = position_.y - layer->GetPosition().y;
+      if (y_layer < ToplevelWindow::kTopLeftMargin.y) {
+        drag_layer_id_ = layer->ID();
+      }
       active_layer->Activate(layer->ID());
     } else {
       active_layer->Activate(0);
@@ -85,6 +131,10 @@ void Mouse::OnInterrupt(uint8_t buttons, int8_t displacement_x, int8_t displacem
     }
   } else if (previous_left_pressed && !left_pressed) {
     drag_layer_id_ = 0;
+  }
+
+  if (drag_layer_id_ == 0) {
+    SendMouseMessage(newpos, posdiff, buttons, previous_buttons_);
   }
 
   previous_buttons_ = buttons;

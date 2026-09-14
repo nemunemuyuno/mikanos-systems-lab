@@ -568,7 +568,11 @@ void Terminal::Print(const char* s, std::optional<size_t> len) {
   Vector2D<int> draw_size{window_->InnerSize().x,
                           cursor_after.y - cursor_before.y + 16};
 
-  Rectangle<int> draw_area{draw_pos, draw_size};
+  //修正点！！
+  Rectangle<int> draw_area{
+      ToplevelWindow::kTopLeftMargin,
+      window_->InnerSize()
+  };
 
   Message msg = MakeLayerMessage(
       task_id_, LayerID(), LayerOperation::DrawArea, draw_area);
@@ -642,7 +646,7 @@ void TaskTerminal(uint64_t task_id, int64_t data) {
       break;
     // #@@range_begin(handle_keypush)
     case Message::kKeyPush:
-      {
+      if (msg->arg.keyboard.press){
         const auto area = terminal->InputKey(msg->arg.keyboard.modifier,
                                             msg->arg.keyboard.keycode,
                                             msg->arg.keyboard.ascii);

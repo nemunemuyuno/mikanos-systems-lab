@@ -233,7 +233,14 @@ extern "C" void KernelMainNewStack(
     // #@@range_begin(main_keypush)
     case Message::kKeyPush:
       if (auto act = active_layer->GetActive(); act == text_window_layer_id) {
-        InputTextWindow(msg->arg.keyboard.ascii);
+        if (msg->arg.keyboard.press) {
+          InputTextWindow(msg->arg.keyboard.ascii);
+        }
+      } else if (msg->arg.keyboard.press &&
+                 msg->arg.keyboard.keycode == 59 /* F2 */) {
+        task_manager->NewTask()
+          .InitContext(TaskTerminal, 0)
+          .Wakeup();
       }else {
         __asm__("cli");
         auto task_it = layer_task_map->find(act);

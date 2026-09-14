@@ -42,8 +42,8 @@ void StopLAPICTimer() {
 }
 
 
-Timer::Timer(unsigned long timeout, int value)
-    : timeout_{timeout}, value_{value} {
+Timer::Timer(unsigned long timeout, int value, uint64_t task_id)
+    : timeout_{timeout}, value_{value}, task_id_{task_id} {
 }
 
 
@@ -78,7 +78,7 @@ bool TimerManager::Tick() {
     Message m{Message::kTimerTimeout};
     m.arg.timer.timeout = t.Timeout();
     m.arg.timer.value = t.Value();
-    task_manager->SendMessage(1, m); //今まで
+    task_manager->SendMessage(t.TaskID(), m); //今まで
 
     timers_.pop();
   }

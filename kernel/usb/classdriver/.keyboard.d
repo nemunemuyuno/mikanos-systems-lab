@@ -34,6 +34,18 @@ usb/classdriver/keyboard.o: usb/classdriver/keyboard.cpp usb/classdriver/keyboar
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/algorithm \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit \
-  usb/endpoint.hpp usb/setupdata.hpp usb/memory.hpp usb/device.hpp \
-  usb/arraymap.hpp \
+  usb/endpoint.hpp usb/setupdata.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bitset \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__bit_reference \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/climits \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string_view \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__string \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cwchar \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cwctype \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cctype \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/ctype.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/wctype.h \
+  usb/memory.hpp usb/device.hpp usb/arraymap.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional
