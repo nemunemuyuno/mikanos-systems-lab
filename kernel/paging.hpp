@@ -23,7 +23,7 @@ const size_t kPageDirectoryCount = 64;
 void SetupIdentityPageTable();
 
 void InitializePaging();
-
+void ResetCR3();
 
 // #@@range_begin(linear_addr)
 union LinearAddress4Level {

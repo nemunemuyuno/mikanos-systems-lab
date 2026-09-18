@@ -2,6 +2,8 @@ paging.o: paging.cpp paging.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstddef \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__config \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/version \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdint \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdint.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tuple \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/type_traits \
@@ -9,8 +11,6 @@ paging.o: paging.cpp paging.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/initializer_list \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstring \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdint \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdint.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__debug \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/iterator \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/iosfwd \

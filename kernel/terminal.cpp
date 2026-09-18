@@ -10,6 +10,7 @@
 #include "elf.hpp"
 #include "memory_manager.hpp"
 #include "paging.hpp"
+#include "timer.hpp"
 
 
 // #@@range_begin(make_argv)
@@ -246,24 +247,82 @@ Error CleanPageMaps(LinearAddress4Level addr) {
   return memory_manager->Free(pdp_frame, 1);
 }
 // #@@range_end(clean_pagemaps)
+
+// #@@range_begin(setup_pml4)
+WithError<PageMapEntry*> SetupPML4(Task& current_task) {
+  auto pml4 = NewPageMap();
+  if (pml4.error) {
+    return pml4;
+  }
+
+  const auto current_pml4 = reinterpret_cast<PageMapEntry*>(GetCR3());
+  memcpy(pml4.value, current_pml4, 256 * sizeof(uint64_t));
+
+  const auto cr3 = reinterpret_cast<uint64_t>(pml4.value);
+  SetCR3(cr3);
+  current_task.Context().cr3 = cr3;
+  return pml4;
+}
+// #@@range_end(setup_pml4)
+
+// #@@range_begin(free_pml4)
+Error FreePML4(Task& current_task) {
+  const auto cr3 = current_task.Context().cr3;
+  current_task.Context().cr3 = 0;
+  ResetCR3();
+
+  const FrameID frame{cr3 / kBytesPerFrame};
+  return memory_manager->Free(frame, 1);
+}
+// #@@range_end(free_pml4)
+void ListAllEntries(Terminal* term, uint32_t dir_cluster) {
+  const auto kEntriesPerCluster =
+    fat::bytes_per_cluster / sizeof(fat::DirectoryEntry);
+
+  while (dir_cluster != fat::kEndOfClusterchain) {
+    auto dir = fat::GetSectorByCluster<fat::DirectoryEntry>(dir_cluster);
+
+    for (int i = 0; i < kEntriesPerCluster; ++i) {
+      if (dir[i].name[0] == 0x00) {
+        return;
+      } else if (static_cast<uint8_t>(dir[i].name[0]) == 0xe5) {
+        continue;
+      } else if (dir[i].attr == fat::Attribute::kLongName) {
+        continue;
+      }
+
+      char name[13];
+      fat::FormatName(dir[i], name);
+      term->Print(name);
+      term->Print("\n");
+    }
+
+    dir_cluster = fat::NextCluster(dir_cluster);
+  }
+}
+
 }
 
  // namespace
 // #@@range_end(make_argv)
-
-Terminal::Terminal(){
+Terminal::Terminal(uint64_t task_id, bool show_window)
+    : task_id_{task_id}, show_window_{show_window} {
+  if (show_window) {
     window_ = std::make_shared<ToplevelWindow>(
         kColumns * 8 + 8 + ToplevelWindow::kMarginX,
         kRows * 16 + 8 + ToplevelWindow::kMarginY,
         screen_config.pixel_format,
         "MikanTerm");
     DrawTerminal(*window_->InnerWriter(), {0, 0}, window_->InnerSize());
+
     layer_id_ = layer_manager->NewLayer()
-        .SetWindow(window_)
-        .SetDraggable(true)
-        .ID();
+      .SetWindow(window_)
+      .SetDraggable(true)
+      .ID();
+
     Print(">");
-    cmd_history_.resize(8);
+  }
+  cmd_history_.resize(8);
 }
 
 // #@@range_end(term_ctor)
@@ -276,8 +335,10 @@ Rectangle<int> Terminal::BlinkCursor() {
 }
 
 void Terminal::DrawCursor(bool visible) {
-  const auto color = visible ? ToColor(0xffffff) : ToColor(0);
-  FillRectangle(*window_->Writer(), CalcCursorPos(), {7, 15}, color);
+  if (show_window_) {
+    const auto color = visible ? ToColor(0xffffff) : ToColor(0);
+    FillRectangle(*window_->Writer(), CalcCursorPos(), {7, 15}, color);
+  }
 }
 
 Vector2D<int> Terminal::CalcCursorPos() const{
@@ -308,12 +369,16 @@ Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii)
     }
     ExecuteLine();
     Print(">");
-    draw_area.pos = ToplevelWindow::kTopLeftMargin;
-    draw_area.size = window_->InnerSize();
+    if (show_window_) {
+      draw_area.pos = ToplevelWindow::kTopLeftMargin;
+      draw_area.size = window_->InnerSize();
+    }
   } else if (ascii == '\b') {
     if (cursor_.x > 0) {
       --cursor_.x;
-      FillRectangle(*window_->Writer(), CalcCursorPos(), {8, 16}, {0, 0, 0});
+      if (show_window_) {
+        FillRectangle(*window_->Writer(), CalcCursorPos(), {8, 16}, {0, 0, 0});
+      }
       draw_area.pos = CalcCursorPos();
 
       if (linebuf_index_ > 0) {
@@ -324,7 +389,9 @@ Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii)
     if (cursor_.x < kColumns - 1 && linebuf_index_ < kLineMax - 1) {
       linebuf_[linebuf_index_] = ascii;
       ++linebuf_index_;
-      WriteAscii(*window_->Writer(), CalcCursorPos(), ascii, {255, 255, 255});
+      if (show_window_) {
+        WriteAscii(*window_->Writer(), CalcCursorPos(), ascii, {255, 255, 255});
+      }
       ++cursor_.x;
     }
   } else if (keycode == 0x51) { // down arrow
@@ -343,13 +410,15 @@ Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii)
 
 // #@@range_begin(scroll)
 void Terminal::Scroll1() {
-  Rectangle<int> move_src{
-    ToplevelWindow::kTopLeftMargin + Vector2D<int>{4, 4 + 16},
-    {8*kColumns, 16*(kRows - 1)}
-  };
-  window_->Move(ToplevelWindow::kTopLeftMargin + Vector2D<int>{4, 4}, move_src);
-  FillRectangle(*window_->InnerWriter(),
-                {4, 4 + 16*cursor_.y}, {8*kColumns, 16}, {0, 0, 0});
+  if (show_window_) {
+    Rectangle<int> move_src{
+      ToplevelWindow::kTopLeftMargin + Vector2D<int>{4, 4 + 16},
+      {8*kColumns, 16*(kRows - 1)}
+    };
+    window_->Move(ToplevelWindow::kTopLeftMargin + Vector2D<int>{4, 4}, move_src);
+    FillRectangle(*window_->InnerWriter(),
+                  {4, 4 + 16*cursor_.y}, {8*kColumns, 16}, {0, 0, 0});
+  }
 }
 // #@@range_end(scroll)
 
@@ -382,37 +451,40 @@ void Terminal::ExecuteLine() {
       Print(s);
     }
   } else if (strcmp(command, "ls") == 0) {
-    auto root_dir_entries = fat::GetSectorByCluster<fat::DirectoryEntry>(
-        fat::boot_volume_image->root_cluster);
-    auto entries_per_cluster =
-      fat::bytes_per_cluster / sizeof(fat::DirectoryEntry);
-    char base[9], ext[4];
-    char s[64];
-    for (int i = 0; i < entries_per_cluster; ++i) {
-      ReadName(root_dir_entries[i], base, ext);
-      if (base[0] == 0x00) {
-        break;
-      } else if (static_cast<uint8_t>(base[0]) == 0xe5) {
-        continue;
-      } else if (root_dir_entries[i].attr == fat::Attribute::kLongName) {
-        continue;
-      }
-
-      if (ext[0]) {
-        sprintf(s, "%s.%s\n", base, ext);
+    if (!first_arg || first_arg[0] == '\0'){
+      ListAllEntries(this, fat::boot_volume_image->root_cluster);
+    } else {
+      auto [ dir, post_slash ] = fat::FindFile(first_arg);
+      if (dir == nullptr) {
+        Print("No such file or directory: ");
+        Print(first_arg);
+        Print("\n");
+      } else if (dir->attr == fat::Attribute::kDirectory) {
+        ListAllEntries(this, dir->FirstCluster());
       } else {
-        sprintf(s, "%s\n", base);
+        char name[13];
+        fat::FormatName(*dir, name);
+        if (post_slash) {
+          Print(name);
+          Print(" is not a directory\n");
+        } else {
+          Print(name);
+          Print("\n");
+        }
       }
-      Print(s);
     }
-  // #@@range_begin(cat_command)
-  } else if (strcmp(command, "cat") == 0) {
+  }else if (strcmp(command, "cat") == 0) {
     char s[64];
 
-    auto file_entry = fat::FindFile(first_arg);
+    auto [ file_entry, post_slash ] = fat::FindFile(first_arg);
     if (!file_entry) {
       sprintf(s, "no such file: %s\n", first_arg);
       Print(s);
+    } else if (file_entry->attr != fat::Attribute::kDirectory && post_slash) {
+      char name[13];
+      fat::FormatName(*file_entry, name);
+      Print(name);
+      Print(" is not a directory\n");
     } else {
       auto cluster = file_entry->FirstCluster();
       auto remain_bytes = file_entry->file_size;
@@ -431,20 +503,29 @@ void Terminal::ExecuteLine() {
       }
       DrawCursor(true);
     }
-  }  else if (command[0] != 0) {
-    // #@@range_begin(pass_arg)
-    auto file_entry = fat::FindFile(command);
+  } else if (strcmp(command, "noterm") == 0) {
+    task_manager->NewTask()
+      .InitContext(TaskTerminal, reinterpret_cast<int64_t>(first_arg))
+      .Wakeup();
+  } else if (command[0] != 0) {
+    auto [ file_entry, post_slash ] = fat::FindFile(command);
     if (!file_entry) {
       Print("no such command: ");
       Print(command);
       Print("\n");
-    } else {
-      ExecuteFile(*file_entry, command, first_arg);
+    } else if (file_entry->attr != fat::Attribute::kDirectory && post_slash) {
+      char name[13];
+      fat::FormatName(*file_entry, name);
+      Print(name);
+      Print(" is not a directory\n");
+    } else if (auto err = ExecuteFile(*file_entry, command, first_arg)) {
+      Print("failed to exec file: ");
+      Print(err.Name());
+      Print("\n");
     }
-    // #@@range_end(pass_arg)
-  }
 }
 // #@@range_end(execute_line)予備
+}
 
 Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command, char* first_arg) {
   // #@@range_begin(load_file)
@@ -454,10 +535,15 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
 
   auto elf_header = reinterpret_cast<Elf64_Ehdr*>(&file_buf[0]);
   if (memcmp(elf_header->e_ident, "\x7f" "ELF", 4) != 0) {
-    using Func = void ();
-    auto f = reinterpret_cast<Func*>(&file_buf[0]);
-    f();
-    return MAKE_ERROR(Error::kSuccess);
+    return MAKE_ERROR(Error::kInvalidFile);
+  }
+
+  __asm__("cli");
+  auto& task = task_manager->CurrentTask();
+  __asm__("sti");
+
+  if (auto pml4 = SetupPML4(task); pml4.error) {
+    return pml4.error;
   }
 
   if (auto err = LoadELF(elf_header)) {
@@ -488,9 +574,6 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
   }
 
   // #@@range_begin(start_app)
-  __asm__("cli");
-  auto& task = task_manager->CurrentTask();
-  __asm__("sti");
 
   auto entry_addr = elf_header->e_entry;
   int ret = CallApp(argc.value, argv, 3 << 3 | 3, entry_addr,
@@ -502,20 +585,11 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
   Print(s);
   // #@@range_end(start_app)
 
-  /*
-  char s[64];
-  sprintf(s, "app exited. ret = %d\n", ret);
-  Print(s);
-  */
-  // #@@range_end(call_app)
-
   const auto addr_first = GetFirstLoadAddress(elf_header);
   if (auto err = CleanPageMaps(LinearAddress4Level{addr_first})) {
     return err;
   }
-  // #@@range_end(load_app)
-
-  return MAKE_ERROR(Error::kSuccess);
+  return FreePML4(task);
 }
 
 
@@ -533,7 +607,9 @@ void Terminal::Print(char c) {
   if (c == '\n') {
     newline();
   } else {
-    WriteAscii(*window_->Writer(), CalcCursorPos(), c, {255, 255, 255});
+    if (show_window_) {
+      WriteAscii(*window_->Writer(), CalcCursorPos(), c, {255, 255, 255});
+    }
     if (cursor_.x == kColumns - 1) {
       newline();
     } else {
@@ -568,6 +644,9 @@ void Terminal::Print(const char* s, std::optional<size_t> len) {
   Vector2D<int> draw_size{window_->InnerSize().x,
                           cursor_after.y - cursor_before.y + 16};
 
+  if (!show_window_) {
+    return;
+  }
   //修正点！！
   Rectangle<int> draw_area{
       ToplevelWindow::kTopLeftMargin,
@@ -613,16 +692,34 @@ Rectangle<int> Terminal::HistoryUpDown(int direction) {
 std::map<uint64_t, Terminal*>* terminals;
 
 void TaskTerminal(uint64_t task_id, int64_t data) {
+  const char* command_line = reinterpret_cast<char*>(data);
+  const bool show_window = command_line == nullptr;
+
   __asm__("cli");
   Task& task = task_manager->CurrentTask();
-  Terminal* terminal = new Terminal;
-  layer_manager->Move(terminal->LayerID(), {100, 200});
-  active_layer->Activate(terminal->LayerID());
-  // #@@range_begin(register_taskmap)
-  layer_task_map->insert(std::make_pair(terminal->LayerID(), task_id));
+  Terminal* terminal = new Terminal{task_id, show_window};
+  if (show_window) {
+    layer_manager->Move(terminal->LayerID(), {100, 200});
+    layer_task_map->insert(std::make_pair(terminal->LayerID(), task_id));
+    active_layer->Activate(terminal->LayerID());
+  }
   (*terminals)[task_id] = terminal;
   __asm__("sti");
+
+  if (command_line) {
+    for (int i = 0; command_line[i] != '\0'; ++i) {
+      terminal->InputKey(0, 0, command_line[i]);
+    }
+    terminal->InputKey(0, 0, '\n');
+  }
   // #@@range_end(register_taskmap)
+  auto add_blink_timer = [task_id](unsigned long t){
+    timer_manager->AddTimer(Timer{t + static_cast<int>(kTimerFreq * 0.5),
+                                  1, task_id});
+  };
+  add_blink_timer(timer_manager->CurrentTick());
+
+  bool window_isactive = false;
 
   while (true) {
     __asm__("cli");
@@ -633,9 +730,11 @@ void TaskTerminal(uint64_t task_id, int64_t data) {
       continue;
     }
       __asm__("sti");
+    // #@@range_begin(term_msg)
     switch (msg->type) {
     case Message::kTimerTimeout:
-      {
+      add_blink_timer(msg->arg.timer.timeout);
+      if (show_window && window_isactive) {
         const auto area = terminal->BlinkCursor();
         Message msg = MakeLayerMessage(
             task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
@@ -644,23 +743,26 @@ void TaskTerminal(uint64_t task_id, int64_t data) {
         __asm__("sti");
       }
       break;
-    // #@@range_begin(handle_keypush)
     case Message::kKeyPush:
-      if (msg->arg.keyboard.press){
+      if (msg->arg.keyboard.press) {
         const auto area = terminal->InputKey(msg->arg.keyboard.modifier,
-                                            msg->arg.keyboard.keycode,
-                                            msg->arg.keyboard.ascii);
-        Message msg = MakeLayerMessage(
-            task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
-        __asm__("cli");
-        task_manager->SendMessage(1, msg);
-        __asm__("sti");
+                                              msg->arg.keyboard.keycode,
+                                              msg->arg.keyboard.ascii);
+        if (show_window) {
+          Message msg = MakeLayerMessage(
+              task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
+          __asm__("cli");
+          task_manager->SendMessage(1, msg);
+          __asm__("sti");
+        }
       }
       break;
-    // #@@range_end(handle_keypush)
+    case Message::kWindowActive:
+      window_isactive = msg->arg.window_active.activate;
+      break;
     default:
       break;
     }
+    // #@@range_end(term_msg)
   }
 }
-

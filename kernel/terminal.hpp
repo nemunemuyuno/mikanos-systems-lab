@@ -16,7 +16,8 @@ class Terminal {
   static const int kLineMax = 128;
   // #@@range_end(linemax)
 
-  Terminal();
+  Terminal(uint64_t task_id, bool show_window);
+
   unsigned int LayerID() const { return layer_id_; }
   Rectangle<int> BlinkCursor();
   //これ多分入力文字とカーソルの2文字分だけの描画範囲
@@ -51,6 +52,8 @@ class Terminal {
   int cmd_history_index_{-1};
   Rectangle<int> HistoryUpDown(int direction);
   // #@@range_end(term_fields)
+  bool show_window_;
+
 };
 
 extern std::map<uint64_t, Terminal*>* terminals;

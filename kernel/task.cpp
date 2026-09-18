@@ -94,6 +94,9 @@ std::optional<Message> Task::ReceiveMessage(){
 }
 
 
+std::vector<std::unique_ptr<fat::FileDescriptor>>& Task::Files() {
+  return files_;
+}
 
 // #@@range_begin(taskmgr_ctor)
 TaskManager::TaskManager() {
