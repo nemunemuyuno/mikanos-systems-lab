@@ -11,6 +11,7 @@
 #include "memory_manager.hpp"
 #include "paging.hpp"
 #include "timer.hpp"
+#include "keyboard.hpp"
 
 
 // #@@range_begin(make_argv)
@@ -573,12 +574,24 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
     return err;
   }
 
-  // #@@range_begin(start_app)
+
+  for (int i = 0; i < 3; ++i) {
+    task.Files().push_back(
+        std::make_unique<TerminalFileDescriptor>(task, *this));
+  }
+
+
+  // #@@range_begin(add_stdin_fd)
+  task.Files().push_back(
+      std::make_unique<TerminalFileDescriptor>(task, *this));
 
   auto entry_addr = elf_header->e_entry;
   int ret = CallApp(argc.value, argv, 3 << 3 | 3, entry_addr,
                     stack_frame_addr.value + 4096 - 8,
                     &task.OSStackPointer());
+
+  task.Files().clear();
+  // #@@range_end(add_stdin_fd)
 
   char s[64];
   sprintf(s, "app exited. ret = %d\n", ret);
@@ -766,3 +779,50 @@ void TaskTerminal(uint64_t task_id, int64_t data) {
     // #@@range_end(term_msg)
   }
 }
+
+// #@@range_begin(term_fd_ctor)
+TerminalFileDescriptor::TerminalFileDescriptor(Task& task, Terminal& term)
+    : task_{task}, term_{term} {
+}
+// #@@range_end(term_fd_ctor)
+
+// #@@range_begin(term_fd_read)
+size_t TerminalFileDescriptor::Read(void* buf, size_t len) {
+  char* bufc = reinterpret_cast<char*>(buf);
+
+  while (true) {
+    __asm__("cli");
+    auto msg = task_.ReceiveMessage();
+    if (!msg) {
+      task_.Sleep();
+      continue;
+    }
+    __asm__("sti");
+
+    if (msg->type != Message::kKeyPush || !msg->arg.keyboard.press) {
+      continue;
+    }
+    if (msg->arg.keyboard.modifier & (kLControlBitMask | kRControlBitMask)) {
+      char s[3] = "^ ";
+      s[1] = toupper(msg->arg.keyboard.ascii);
+      term_.Print(s);
+      if (msg->arg.keyboard.keycode == 7 /* D */) {
+        return 0; // EOT
+      }
+      continue;
+    }
+
+    bufc[0] = msg->arg.keyboard.ascii;
+    term_.Print(bufc, 1);
+    return 1;
+  }
+}
+// #@@range_end(term_fd_read)
+
+
+// #@@range_begin(term_fd_write)
+size_t TerminalFileDescriptor::Write(const void* buf, size_t len) {
+  term_.Print(reinterpret_cast<const char*>(buf), len);
+  return len;
+}
+// #@@range_end(term_fd_write)

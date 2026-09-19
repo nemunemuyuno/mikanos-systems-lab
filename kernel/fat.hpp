@@ -6,8 +6,11 @@
 
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
+#include <cstddef>
+
+#include "error.hpp"
+#include "file.hpp"
 
 namespace fat {
 
@@ -51,7 +54,6 @@ enum class Attribute : uint8_t {
   kLongName  = 0x0f,
 };
 
-// #@@range_begin(directory_entry)
 struct DirectoryEntry {
   unsigned char name[11];
   Attribute attr;
@@ -71,7 +73,6 @@ struct DirectoryEntry {
       (static_cast<uint32_t>(first_cluster_high) << 16);
   }
 } __attribute__((packed));
-// #@@range_end(directory_entry)
 
 extern BPB* boot_volume_image;
 extern unsigned long bytes_per_cluster;
@@ -111,9 +112,7 @@ void ReadName(const DirectoryEntry& entry, char* base, char* ext);
  */
 void FormatName(const DirectoryEntry& entry, char* dest);
 
-// #@@range_begin(eoc)
 static const unsigned long kEndOfClusterchain = 0x0ffffffflu;
-// #@@range_end(eoc)
 
 /** @brief 指定されたクラスタの次のクラスタ番号を返す。
  *
@@ -131,8 +130,8 @@ unsigned long NextCluster(unsigned long cluster);
  *   エントリの直後にスラッシュがあれば true。
  *   パスの途中のエントリがファイルであれば探索を諦め，そのエントリと true を返す。
  */
-std::pair<DirectoryEntry*, bool> FindFile(const char* path, unsigned long directory_cluster = 0);
-
+std::pair<DirectoryEntry*, bool>
+FindFile(const char* path, unsigned long directory_cluster = 0);
 
 bool NameIsEqual(const DirectoryEntry& entry, const char* name);
 
@@ -145,18 +144,63 @@ bool NameIsEqual(const DirectoryEntry& entry, const char* name);
  */
 size_t LoadFile(void* buf, size_t len, const DirectoryEntry& entry);
 
-// #@@range_begin(file_descriptor)
-class FileDescriptor {
+bool IsEndOfClusterchain(unsigned long cluster);
+
+uint32_t* GetFAT();
+
+/** @brief 指定したクラスタ数だけクラスタチェーンを伸長する。
+ *
+ * @param eoc_cluster  伸長したいクラスタチェーンに属するいずれかのクラスタ番号
+ * @param n  伸長するクラスタ数
+ * @return  伸長後のチェーンにおける最後尾のクラスタ番号
+ */
+unsigned long ExtendCluster(unsigned long eoc_cluster, size_t n);
+
+/** @brief 指定したディレクトリの空きエントリを 1 つ返す。
+ * ディレクトリが満杯ならクラスタを 1 つ伸長して空きエントリを確保する。
+ *
+ * @param dir_cluster  空きエントリを探すディレクトリ
+ * @return 空きエントリ
+ */
+DirectoryEntry* AllocateEntry(unsigned long dir_cluster);
+
+/** @brief ディレクトリエントリに短ファイル名をセットする。
+ *
+ * @param entry  ファイル名を設定する対象のディレクトリエントリ
+ * @param name  基本名と拡張子をドットで結合したファイル名
+ */
+void SetFileName(DirectoryEntry& entry, const char* name);
+
+/** @brief 指定されたパスにファイルエントリを作成する。
+ *
+ * @param path  ファイルパス
+ * @return 新規作成されたファイルエントリ
+ */
+WithError<DirectoryEntry*> CreateFile(const char* path);
+
+/** @brief 指定した数の空きクラスタからなるチェーンを構築する。
+ *
+ * @param n  クラスタ数
+ * @return  構築したチェーンの先頭クラスタ番号
+ */
+unsigned long AllocateClusterChain(size_t n);
+
+// #@@range_begin(fat_fd)
+class FileDescriptor : public ::FileDescriptor {
  public:
   explicit FileDescriptor(DirectoryEntry& fat_entry);
-  size_t Read(void* buf, size_t len);
+  size_t Read(void* buf, size_t len) override;
+  size_t Write(const void* buf, size_t len) override;
 
  private:
   DirectoryEntry& fat_entry_;
   size_t rd_off_ = 0;
   unsigned long rd_cluster_ = 0;
   size_t rd_cluster_off_ = 0;
+  size_t wr_off_ = 0;
+  unsigned long wr_cluster_ = 0;
+  size_t wr_cluster_off_ = 0;
 };
-// #@@range_end(file_descriptor)
+// #@@range_end(fat_fd)
 
 } // namespace fat
