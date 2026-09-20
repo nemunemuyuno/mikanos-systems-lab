@@ -48,4 +48,18 @@ window.o: window.cpp window.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/wctype.h \
   graphics.hpp frame_buffer_config.hpp frame_buffer.hpp error.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array logger.hpp \
-  font.hpp
+  font.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/ft2build.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftheader.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/freetype.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftconfig.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftoption.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftstdlib.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stddef.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/setjmp.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fttypes.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftsystem.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftimage.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fterrors.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftmoderr.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fterrdef.h

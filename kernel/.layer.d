@@ -53,4 +53,5 @@ layer.o: layer.cpp layer.hpp \
   frame_buffer.hpp error.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array message.hpp \
   console.hpp logger.hpp task.hpp \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/deque
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/deque paging.hpp \
+  fat.hpp file.hpp

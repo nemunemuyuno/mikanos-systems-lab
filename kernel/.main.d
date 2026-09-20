@@ -41,7 +41,21 @@ main.o: main.cpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__split_buffer \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/deque \
   frame_buffer_config.hpp memory_map.hpp graphics.hpp mouse.hpp font.hpp \
-  console.hpp window.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/ft2build.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftheader.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/freetype.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftconfig.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftoption.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftstdlib.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stddef.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/setjmp.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fttypes.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftsystem.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftimage.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fterrors.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftmoderr.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fterrdef.h \
+  error.hpp console.hpp window.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string_view \
@@ -51,7 +65,7 @@ main.o: main.cpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cctype \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/ctype.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/wctype.h \
-  frame_buffer.hpp error.hpp pci.hpp logger.hpp usb/xhci/xhci.hpp \
+  frame_buffer.hpp pci.hpp logger.hpp usb/xhci/xhci.hpp \
   usb/xhci/registers.hpp register.hpp usb/xhci/context.hpp \
   usb/endpoint.hpp usb/xhci/ring.hpp usb/memory.hpp usb/xhci/trb.hpp \
   usb/xhci/port.hpp usb/xhci/devmgr.hpp usb/xhci/device.hpp \
@@ -62,4 +76,5 @@ main.o: main.cpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tree \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__node_handle \
   timer.hpp /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/queue \
-  acpi.hpp keyboard.hpp task.hpp terminal.hpp fat.hpp syscall.hpp
+  acpi.hpp keyboard.hpp task.hpp fat.hpp file.hpp terminal.hpp \
+  syscall.hpp

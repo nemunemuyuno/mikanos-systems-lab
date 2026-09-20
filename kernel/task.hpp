@@ -8,9 +8,11 @@
 #include <deque>
 #include <algorithm>
 #include <optional>
+#include <map>
 
 #include "error.hpp"
 #include "message.hpp"
+#include "paging.hpp"
 #include "fat.hpp"
 
 struct TaskContext {
@@ -26,11 +28,15 @@ using TaskFunc = void (uint64_t, int64_t);
 
 class TaskManager;
 
+struct FileMapping {
+  int fd;
+  uint64_t vaddr_begin, vaddr_end;
+};
 
 class Task {
  public:
   static const int kDefaultLevel = 1;
-  static const size_t kDefaultStackBytes = 4096;
+  static const size_t kDefaultStackBytes = 8 * 4096;
 
   Task(uint64_t id);
   Task& InitContext(TaskFunc* f, int64_t data);
@@ -41,8 +47,14 @@ class Task {
   Task& Wakeup();
   void SendMessage(const Message& msg);
   std::optional<Message> ReceiveMessage();
-  std::vector<std::unique_ptr<::FileDescriptor>>& Files();
-
+  std::vector<std::shared_ptr<::FileDescriptor>>& Files();
+  uint64_t DPagingBegin() const;
+  void SetDPagingBegin(uint64_t v);
+  uint64_t DPagingEnd() const;
+  void SetDPagingEnd(uint64_t v);
+  uint64_t FileMapEnd() const;
+  void SetFileMapEnd(uint64_t v);
+  std::vector<FileMapping>& FileMaps();
   int Level() const{return level_;}
   bool Running() const {return running_;}
 
@@ -54,7 +66,10 @@ class Task {
   std::deque<Message> msgs_;
   unsigned int level_{kDefaultLevel};
   bool running_{false};   //このTaskが実行可能か（ready状態か）
-    std::vector<std::unique_ptr<::FileDescriptor>> files_{};
+  std::vector<std::shared_ptr<::FileDescriptor>> files_{};
+  uint64_t dpaging_begin_{0}, dpaging_end_{0};
+  uint64_t file_map_end_{0};
+  std::vector<FileMapping> file_maps_{};
 
   Task& SetLevel(int level) { level_ = level; return *this; }
   Task& SetRunning(bool running) { running_ = running; return *this; }
@@ -78,6 +93,8 @@ class TaskManager {
   Error Wakeup(uint64_t id, int level = -1);
   Error SendMessage(uint64_t id, const Message& msg);
   Task& CurrentTask();
+  void Finish(int exit_code);
+  WithError<int> WaitFinish(uint64_t task_id);
 
  private:
   std::vector<std::unique_ptr<Task>> tasks_{};
@@ -85,6 +102,9 @@ class TaskManager {
   std::array<std::deque<Task*>, kMaxLevel + 1> running_{};
   int current_level_{kMaxLevel};
   bool level_changed_{false};  //次のTaskを決める前に、どのLevelが最高なのか調べ直してねというフラグ
+  std::map<uint64_t, int> finish_tasks_{}; // key: ID of a finished task
+  std::map<uint64_t, Task*> finish_waiter_{}; // key: ID of a finished task
+
   void ChangeLevelRunning(Task* task, int level);
   Task* RotateCurrentRunQueue(bool current_sleep);
 };

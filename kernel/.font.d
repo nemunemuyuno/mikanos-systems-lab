@@ -2,22 +2,38 @@ font.o: font.cpp font.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdint \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__config \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdint.h \
-  graphics.hpp \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/algorithm \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/initializer_list \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/utility \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tuple \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstddef \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/version \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/type_traits \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/initializer_list \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstring \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string.h \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/utility \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tuple \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__debug \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/ft2build.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftheader.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/freetype.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftconfig.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftoption.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/config/ftstdlib.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stddef.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdlib.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/setjmp.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fttypes.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftsystem.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftimage.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fterrors.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/ftmoderr.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/freetype2/freetype/fterrdef.h \
+  graphics.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/algorithm \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/memory \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/typeinfo \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/exception \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdlib \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdlib.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/new \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/iterator \
@@ -31,4 +47,11 @@ font.o: font.cpp font.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/_ansi.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/functional \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit \
-  frame_buffer_config.hpp
+  frame_buffer_config.hpp error.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/vector \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__bit_reference \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/climits \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__split_buffer \
+  fat.hpp file.hpp logger.hpp

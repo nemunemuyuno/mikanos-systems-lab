@@ -3,7 +3,9 @@ paging.o: paging.cpp paging.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__config \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/version \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdint \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdint.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdint.h error.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/array \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__tuple \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/type_traits \
@@ -30,4 +32,13 @@ paging.o: paging.cpp paging.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/assert.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/_ansi.h \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/functional \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit asmfunc.h
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit asmfunc.h \
+  memory_manager.hpp memory_map.hpp task.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/vector \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__bit_reference \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/climits \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__split_buffer \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/deque \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional \
+  message.hpp fat.hpp file.hpp logger.hpp

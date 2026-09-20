@@ -62,5 +62,5 @@ interrupt.o: interrupt.cpp interrupt.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h task.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/optional error.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
-  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
-  graphics.hpp frame_buffer_config.hpp font.hpp
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h paging.hpp \
+  fat.hpp file.hpp graphics.hpp frame_buffer_config.hpp font.hpp

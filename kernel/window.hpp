@@ -16,6 +16,13 @@
  *
  * タイトルやメニューがあるウィンドウだけでなく，マウスカーソルの表示領域なども対象とする。
  */
+enum class WindowRegion {
+  kTitleBar,
+  kCloseButton,
+  kBorder,
+  kOther,
+};
+
 class Window {
  public:
   /** @brief WindowWriter は Window と関連付けられた PixelWriter を提供する。
@@ -80,6 +87,7 @@ class Window {
   virtual void Activate() {}
   virtual void Deactivate() {}
   // #@@range_end(window_activate)
+  virtual WindowRegion GetWindowRegion(Vector2D<int> pos);
 
  private:
   int width_, height_;
@@ -120,6 +128,7 @@ class ToplevelWindow : public Window {
 
   virtual void Activate() override;
   virtual void Deactivate() override;
+  virtual WindowRegion GetWindowRegion(Vector2D<int> pos) override;
 
   InnerAreaWriter* InnerWriter() { return &inner_writer_; }
   Vector2D<int> InnerSize() const;

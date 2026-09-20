@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "error.hpp"
+
 /** @brief 静的に確保するページディレクトリの個数
  *
  * この定数は SetupIdentityPageMap で使用される．
@@ -25,7 +27,6 @@ void SetupIdentityPageTable();
 void InitializePaging();
 void ResetCR3();
 
-// #@@range_begin(linear_addr)
 union LinearAddress4Level {
   uint64_t value;
 
@@ -59,9 +60,7 @@ union LinearAddress4Level {
     }
   }
 };
-// #@@range_end(linear_addr)
 
-// #@@range_begin(pagemap_entry)
 union PageMapEntry {
   uint64_t data;
 
@@ -89,4 +88,11 @@ union PageMapEntry {
     bits.addr = reinterpret_cast<uint64_t>(p) >> 12;
   }
 };
-// #@@range_end(pagemap_entry)
+
+WithError<PageMapEntry*> NewPageMap();
+Error FreePageMap(PageMapEntry* table);
+Error SetupPageMaps(LinearAddress4Level addr, size_t num_4kpages,
+                    bool writable = true);
+Error CleanPageMaps(LinearAddress4Level addr);
+Error CopyPageMaps(PageMapEntry* dest, PageMapEntry* src, int part, int start);
+Error HandlePageFault(uint64_t error_code, uint64_t causal_addr);

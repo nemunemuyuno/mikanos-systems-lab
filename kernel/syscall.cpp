@@ -204,22 +204,10 @@ SYSCALL(WinDrawLine) {
 }
 SYSCALL(CloseWindow) {
   const unsigned int layer_id = arg1 & 0xffffffff;
-  const auto layer = layer_manager->FindLayer(layer_id);
-
-  if (layer == nullptr) {
+  const auto err = CloseLayer(layer_id);
+  if (err.Cause() == Error::kNoSuchEntry) {
     return { EBADF, 0 };
   }
-
-  const auto layer_pos = layer->GetPosition();
-  const auto win_size = layer->GetWindow()->Size();
-
-  __asm__("cli");
-  active_layer->Activate(0);
-  layer_manager->RemoveLayer(layer_id);
-  layer_manager->Draw({layer_pos, win_size});
-  layer_task_map->erase(layer_id);
-  __asm__("sti");
-
   return { 0, 0 };
 }
 
@@ -287,6 +275,11 @@ SYSCALL(ReadEvent) {
         app_events[i].arg.timer.value = -msg->arg.timer.value;
         ++i;
       }
+      break;
+    case Message::kWindowClose:
+      app_events[i].type = AppEvent::kQuit;
+      ++i;
+      break;
     default:
       Log(kInfo, "uncaught event type: %u\n", msg->type);
     }
@@ -392,13 +385,49 @@ SYSCALL(ReadFile) {
 }
 // #@@range_end(read_file)
 
+// #@@range_begin(demand_pages)
+SYSCALL(DemandPages) {
+  const size_t num_pages = arg1;
+  // const int flags = arg2;
+  __asm__("cli");
+  auto& task = task_manager->CurrentTask();
+  __asm__("sti");
+
+  const uint64_t dp_end = task.DPagingEnd();
+  task.SetDPagingEnd(dp_end + 4096 * num_pages);
+  return { dp_end, 0 };
+}
+// #@@range_end(demand_pages)
+
+// #@@range_begin(map_file)
+SYSCALL(MapFile) {
+  const int fd = arg1;
+  size_t* file_size = reinterpret_cast<size_t*>(arg2);
+  // const int flags = arg3;
+  __asm__("cli");
+  auto& task = task_manager->CurrentTask();
+  __asm__("sti");
+
+  if (fd < 0 || task.Files().size() <= fd || !task.Files()[fd]) {
+    return { 0, EBADF };
+  }
+
+  *file_size = task.Files()[fd]->Size();
+  const uint64_t vaddr_end = task.FileMapEnd();
+  const uint64_t vaddr_begin = (vaddr_end - *file_size) & 0xffff'ffff'ffff'f000;
+  task.SetFileMapEnd(vaddr_begin);
+  task.FileMaps().push_back(FileMapping{fd, vaddr_begin, vaddr_end});
+  return { vaddr_begin, 0 };
+}
+// #@@range_end(map_file)
+
 #undef SYSCALL
 } // namespace syscall
 
 // #@@range_begin(syscall_table)
 using SyscallFuncType = syscall::Result (uint64_t, uint64_t, uint64_t,
                                           uint64_t, uint64_t, uint64_t);
-extern "C" std::array<SyscallFuncType*, 0xe> syscall_table{
+extern "C" std::array<SyscallFuncType*, 0x10> syscall_table{
   /* 0x00 */ syscall::LogString,
   /* 0x01 */ syscall::PutString,
   /* 0x02 */ syscall::Exit,
@@ -413,6 +442,8 @@ extern "C" std::array<SyscallFuncType*, 0xe> syscall_table{
   /* 0x0b */ syscall::CreateTimer,
   /* 0x0c */ syscall::OpenFile,
   /* 0x0d */ syscall::ReadFile,
+  /* 0x0e */ syscall::DemandPages,
+  /* 0x0f */ syscall::MapFile,
 };
 // #@@range_end(syscall_table)
 

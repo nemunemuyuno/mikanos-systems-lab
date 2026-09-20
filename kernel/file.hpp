@@ -1,10 +1,17 @@
 #pragma once
 
+#include <cstddef>
+#include "error.hpp"
 // #@@range_begin(file_fd)
 class FileDescriptor {
  public:
   virtual ~FileDescriptor() = default;
   virtual size_t Read(void* buf, size_t len) = 0;
   virtual size_t Write(const void* buf, size_t len) = 0;
+  virtual size_t Size() const = 0;
+
+  virtual size_t Load(void* buf, size_t len, size_t offset) = 0;
 };
 // #@@range_end(file_fd)
+size_t PrintToFD(FileDescriptor& fd, const char* format, ...);
+size_t ReadDelim(FileDescriptor& fd, char delim, char* buf, size_t len);

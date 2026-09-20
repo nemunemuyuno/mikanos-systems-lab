@@ -33,4 +33,17 @@ memory_manager.o: memory_manager.cpp memory_manager.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bit error.hpp \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cstdio \
   /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/stdio.h \
-  memory_map.hpp logger.hpp
+  memory_map.hpp \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/bitset \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__bit_reference \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/climits \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/limits.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/string_view \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/__string \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cwchar \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cwctype \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/cctype \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/ctype.h \
+  /home/ramur/osbook/devenv/x86_64-elf/include/c++/v1/wctype.h \
+  logger.hpp

@@ -143,3 +143,5 @@ constexpr Message MakeLayerMessage(
   return msg;
 }
 // #@@range_end(make_layermsg)
+
+Error CloseLayer(unsigned int layer_id);
